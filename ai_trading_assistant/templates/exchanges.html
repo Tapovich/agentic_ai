@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block title %}Exchange Accounts - AI Trading Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>🌐 Exchange Accounts</h1>
+        <p>Link your cryptocurrency exchange accounts to enable automated trading</p>
+    </div>
+    
+    <!-- Info Alert -->
+    <div class="info-alert">
+        <h3>⚠️ For University Project - Educational Purpose Only</h3>
+        <p>
+            <strong>Important:</strong> This feature demonstrates exchange connectivity for educational purposes.
+            API secrets are stored with simple base64 encoding (NOT secure encryption).
+        </p>
+        <p>
+            <strong>In production:</strong> API secrets must be properly encrypted using AES-256 or similar,
+            stored in a secure vault (AWS KMS, HashiCorp Vault), and never exposed to users.
+        </p>
+        <p>
+            <strong>For this project:</strong> We're showing how the feature works conceptually.
+            Do NOT use real API keys with actual funds!
+        </p>
+    </div>
+    
+    <!-- Add New Account Section -->
+    <div class="card">
+        <div class="card-header">
+            <h2>➕ Link New Exchange Account</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_exchange') }}" class="exchange-form">
+                <!-- Exchange Selection -->
+                <div class="form-group">
+                    <label for="exchange_name">Exchange <span class="required">*</span></label>
+                    <select id="exchange_name" name="exchange_name" class="form-input" required>
+                        <option value="">Select Exchange...</option>
+                        <option value="binance">Binance (World's largest exchange)</option>
+                        <option value="bybit">Bybit (Derivatives & spot)</option>
+                        <option value="okx">OKX (Global exchange)</option>
+                        <option value="mexc">MEXC (Wide altcoin selection)</option>
+                        <option value="bingx">BingX (Copy trading)</option>
+                    </select>
+                    <small>Choose which cryptocurrency exchange you want to link</small>
+                </div>
+                
+                <!-- Account Label -->
+                <div class="form-group">
+                    <label for="account_label">Account Label</label>
+                    <input 
+                        type="text" 
+                        id="account_label" 
+                        name="account_label" 
+                        class="form-input"
+                        placeholder="e.g., My Binance Main Account"
+                        maxlength="100"
+                    >
+                    <small>Optional: Give this account a friendly name for easy identification</small>
+                </div>
+                
+                <!-- API Key -->
+                <div class="form-group">
+                    <label for="api_key">API Key <span class="required">*</span></label>
+                    <input 
+                        type="text" 
+                        id="api_key" 
+                        name="api_key" 
+                        class="form-input"
+                        placeholder="Enter your API key from the exchange"
+                        required
+                    >
+                    <small>Get this from your exchange account settings</small>
+                </div>
+                
+                <!-- API Secret -->
+                <div class="form-group">
+                    <label for="api_secret">API Secret <span class="required">*</span></label>
+                    <input 
+                        type="password" 
+                        id="api_secret" 
+                        name="api_secret" 
+                        class="form-input"
+                        placeholder="Enter your API secret"
+                        required
+                    >
+                    <small>⚠️ Keep this secret! Never share with anyone</small>
+                </div>
+                
+                <!-- Testnet Checkbox -->
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="is_testnet" name="is_testnet">
+                        <span>Use Testnet/Sandbox Mode (Recommended for testing)</span>
+                    </label>
+                    <small>
+                        Testnet uses fake money - safe for testing without financial risk.
+                        Supported by: Binance, Bybit, OKX
+                    </small>
+                </div>
+                
+                <!-- Security Warning -->
+                <div class="warning-box">
+                    <p><strong>🔐 Security Reminder:</strong></p>
+                    <ul>
+                        <li>Only use testnet API keys for this university project</li>
+                        <li>Never enter real API keys with actual funds</li>
+                        <li>API keys can control your exchange account</li>
+                        <li>Enable IP restrictions on your API keys</li>
+                        <li>Use read-only permissions if only fetching data</li>
+                    </ul>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary btn-block">
+                    🔗 Link Exchange Account
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Linked Accounts Section -->
+    <div class="card">
+        <div class="card-header">
+            <h2>📋 Your Linked Accounts</h2>
+        </div>
+        <div class="card-body">
+            {% if accounts and accounts|length > 0 %}
+            <div class="table-responsive">
+                <table class="exchange-accounts-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Exchange</th>
+                            <th>Account Label</th>
+                            <th>API Key</th>
+                            <th>Mode</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in accounts %}
+                        <tr>
+                            <td><strong>#{{ account.id }}</strong></td>
+                            <td>
+                                <span class="exchange-badge exchange-{{ account.exchange_name }}">
+                                    {{ account.exchange_name|capitalize }}
+                                </span>
+                            </td>
+                            <td>{{ account.account_label }}</td>
+                            <td>
+                                <code class="api-key-display">{{ account.api_key_masked }}</code>
+                            </td>
+                            <td>
+                                {% if account.is_testnet == 1 %}
+                                <span class="mode-badge testnet">Testnet 🧪</span>
+                                {% else %}
+                                <span class="mode-badge live">Live 🔴</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if account.is_active == 1 %}
+                                <span class="status-badge status-active">Active</span>
+                                {% else %}
+                                <span class="status-badge status-stopped">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ account.created_at }}</td>
+                            <td>
+                                {% if account.is_active == 1 %}
+                                <!-- TASK 48: Test Connection Button -->
+                                <button 
+                                    type="button"
+                                    class="btn-action btn-test"
+                                    onclick="testExchangeConnection('{{account.id}}')"
+                                    data-account-id="{{account.id}}"
+                                    style="margin-right: 0.5rem;">
+                                    🔍 Test
+                                </button>
+                                <form method="POST" action="{{ url_for('delete_exchange', account_id=account.id) }}" style="display: inline;">
+                                    <button 
+                                        type="submit" 
+                                        class="btn-action btn-delete"
+                                        onclick="return confirm('Are you sure you want to remove this exchange account?');">
+                                        🗑️ Remove
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted">Removed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🔗</div>
+                <p>No exchange accounts linked yet.</p>
+                <p>Link an exchange account above to enable automated trading and live market data!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- How to Get API Keys -->
+    <div class="card">
+        <div class="card-header">
+            <h2>📖 How to Get API Keys</h2>
+        </div>
+        <div class="card-body">
+            <div class="exchange-instructions">
+                <div class="instruction-item">
+                    <h3>🟡 Binance</h3>
+                    <ol>
+                        <li>Log in to <a href="https://www.binance.com" target="_blank">Binance.com</a></li>
+                        <li>Go to: Account → API Management</li>
+                        <li>Create API key with appropriate permissions</li>
+                        <li>For testnet: Use <a href="https://testnet.binance.vision" target="_blank">testnet.binance.vision</a></li>
+                    </ol>
+                </div>
+                
+                <div class="instruction-item">
+                    <h3>🟠 Bybit</h3>
+                    <ol>
+                        <li>Log in to <a href="https://www.bybit.com" target="_blank">Bybit.com</a></li>
+                        <li>Go to: Account & Security → API</li>
+                        <li>Create new API key</li>
+                        <li>For testnet: Use <a href="https://testnet.bybit.com" target="_blank">testnet.bybit.com</a></li>
+                    </ol>
+                </div>
+                
+                <div class="instruction-item">
+                    <h3>⚪ OKX</h3>
+                    <ol>
+                        <li>Log in to <a href="https://www.okx.com" target="_blank">OKX.com</a></li>
+                        <li>Go to: Profile → API</li>
+                        <li>Create API key</li>
+                        <li>Set appropriate permissions and IP restrictions</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="security-tips">
+                <h3>🔐 Security Best Practices:</h3>
+                <ul>
+                    <li>✅ Always use testnet for educational projects</li>
+                    <li>✅ Enable IP restrictions on API keys</li>
+                    <li>✅ Use read-only permissions if only fetching data</li>
+                    <li>✅ Never share your API secret with anyone</li>
+                    <li>✅ Regularly rotate your API keys</li>
+                    <li>✅ Enable 2FA on your exchange account</li>
+                    <li>❌ Never commit API keys to git repositories</li>
+                    <li>❌ Never use API keys with withdraw permissions for testing</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TASK 48: Test Connection JavaScript -->
+<script>
+/**
+ * Test Exchange Connection (TASK 48)
+ * 
+ * Calls /api/exchange/test_connection to validate API credentials
+ */
+async function testExchangeConnection(accountId) {
+    console.log(`🔍 Testing connection for account ID: ${accountId}`);
+    
+    // Get the button
+    const button = document.querySelector(`button[data-account-id="${accountId}"]`);
+    
+    if (button) {
+        // Update button state
+        button.disabled = true;
+        button.innerHTML = '⏳ Testing...';
+        button.style.opacity = '0.6';
+    }
+    
+    try {
+        // Call test connection API
+        const response = await fetch('/api/exchange/test_connection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                account_id: accountId
+            })
+        });
+        
+        const result = await response.json();
+        
+        console.log('Test connection result:', result);
+        
+        // Show result to user
+        if (result.ok) {
+            // Success!
+            showConnectionResult(
+                'success',
+                `✅ Connection Successful`,
+                `Successfully connected to ${result.exchange.toUpperCase()}!\n\n` +
+                `Found ${result.total_assets || 0} assets with balance.\n\n` +
+                (result.balances_sample ? 
+                    `Sample balances:\n${formatBalancesSample(result.balances_sample)}` : 
+                    'No balances to display.')
+            );
+        } else {
+            // Failure
+            let errorMsg = result.message || 'Connection failed';
+            if (result.suggestion) {
+                errorMsg += `\n\n💡 ${result.suggestion}`;
+            }
+            if (result.error_type) {
+                errorMsg += `\n\nError type: ${result.error_type}`;
+            }
+            
+            showConnectionResult('error', '❌ Connection Failed', errorMsg);
+        }
+        
+    } catch (error) {
+        console.error('Error testing connection:', error);
+        showConnectionResult(
+            'error',
+            '❌ Error',
+            `Failed to test connection: ${error.message}\n\nPlease check your internet connection and try again.`
+        );
+    } finally {
+        // Restore button
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '🔍 Test';
+            button.style.opacity = '1';
+        }
+    }
+}
+
+/**
+ * Format balances sample for display
+ */
+function formatBalancesSample(balances) {
+    const entries = Object.entries(balances);
+    if (entries.length === 0) {
+        return 'No balances';
+    }
+    
+    // Show up to 5 assets
+    const topBalances = entries.slice(0, 5);
+    return topBalances.map(([asset, amount]) => {
+        return `  • ${asset}: ${amount.toFixed(8)}`;
+    }).join('\n');
+}
+
+/**
+ * Show connection test result in alert
+ * 
+ * @param {string} type - 'success' or 'error'
+ * @param {string} title - Alert title
+ * @param {string} message - Alert message
+ */
+function showConnectionResult(type, title, message) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease-out;
+    `;
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    // Set modal content
+    const bgColor = type === 'success' ? '#10b981' : '#ef4444';
+    modal.innerHTML = `
+        <div style="text-align: center;">
+            <div style="
+                font-size: 3rem;
+                margin-bottom: 1rem;
+                padding: 1.5rem;
+                background: ${bgColor}15;
+                border-radius: 50%;
+                display: inline-block;
+            ">
+                ${type === 'success' ? '✅' : '❌'}
+            </div>
+            <h2 style="margin: 0 0 1rem 0; color: #1f2937; font-size: 1.5rem;">
+                ${title}
+            </h2>
+            <div style="
+                background: #f9fafb;
+                padding: 1rem;
+                border-radius: 8px;
+                margin-bottom: 1.5rem;
+                font-family: 'Courier New', monospace;
+                font-size: 0.9rem;
+                color: #374151;
+                white-space: pre-wrap;
+                text-align: left;
+                max-height: 300px;
+                overflow-y: auto;
+            ">
+                ${message}
+            </div>
+            <button 
+                onclick="this.closest('.modal-overlay').remove()"
+                style="
+                    background: ${bgColor};
+                    color: white;
+                    border: none;
+                    padding: 0.75rem 2rem;
+                    border-radius: 8px;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                "
+                onmouseover="this.style.opacity='0.9'"
+                onmouseout="this.style.opacity='1'"
+            >
+                Close
+            </button>
+        </div>
+    `;
+    
+    overlay.className = 'modal-overlay';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            overlay.remove();
+        }
+    });
+    
+    // Add CSS animations
+    if (!document.getElementById('connection-test-styles')) {
+        const style = document.createElement('style');
+        style.id = 'connection-test-styles';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-20px) scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+</script>
+
+<style>
+/* TASK 48: Test Button Styling */
+.btn-test {
+    background: #3b82f6;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-test:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-test:active {
+    transform: translateY(0);
+}
+
+.btn-test:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+</style>
+
+{% endblock %}
+

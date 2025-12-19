@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+
+{% block title %}Frequently Asked Questions - AI Trading Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>❓ Frequently Asked Questions (FAQ)</h1>
+        <p>Find answers to common questions about the AI Trading Assistant platform</p>
+    </div>
+
+    <!-- FAQ Categories -->
+    <div class="faq-container">
+        
+        <!-- General Questions -->
+        <div class="faq-category">
+            <h2>🎯 General Questions</h2>
+            
+            <details class="faq-item">
+                <summary>What is the AI Trading Assistant platform?</summary>
+                <div class="faq-answer">
+                    <p>
+                        The AI Trading Assistant is an educational platform designed to demonstrate 
+                        automated cryptocurrency trading strategies. It combines artificial intelligence, 
+                        technical indicators, and algorithmic trading bots to help users understand 
+                        how modern trading systems work.
+                    </p>
+                    <p>
+                        <strong>Key Features:</strong>
+                    </p>
+                    <ul>
+                        <li>AI-powered price predictions using machine learning</li>
+                        <li>Technical analysis with EMA indicators and signals</li>
+                        <li>Automated Grid Trading bots for ranging markets</li>
+                        <li>DCA (Dollar-Cost Averaging) bots for trending markets</li>
+                        <li>Real exchange integration via CCXT library</li>
+                        <li>Paper trading simulation for safe testing</li>
+                    </ul>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Is this platform free to use?</summary>
+                <div class="faq-answer">
+                    <p>
+                        Yes! This is an open-source educational project developed for learning purposes. 
+                        The platform itself is free to use. However, if you connect real exchange accounts 
+                        and execute live trades, you'll need to manage your own funds and may incur 
+                        exchange fees.
+                    </p>
+                    <p>
+                        <strong>Recommended:</strong> Use testnet/sandbox accounts provided by exchanges 
+                        like Binance, Bybit, and OKX to practice without risking real money.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Is this financial advice?</summary>
+                <div class="faq-answer">
+                    <p style="color: #ef4444; font-weight: 600;">
+                        ❌ NO. This platform is for EDUCATIONAL purposes only.
+                    </p>
+                    <p>
+                        <strong>Important Disclaimers:</strong>
+                    </p>
+                    <ul>
+                        <li>AI predictions are NOT guaranteed to be accurate</li>
+                        <li>Past performance does NOT indicate future results</li>
+                        <li>Trading bots can lose money, especially in volatile markets</li>
+                        <li>You are solely responsible for your trading decisions</li>
+                        <li>Always do your own research (DYOR)</li>
+                        <li>Never invest more than you can afford to lose</li>
+                    </ul>
+                    <p>
+                        Consult with a licensed financial advisor before making investment decisions.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Which cryptocurrency exchanges are supported?</summary>
+                <div class="faq-answer">
+                    <p>
+                        The platform uses the CCXT library to support multiple exchanges:
+                    </p>
+                    <ul>
+                        <li><strong>Binance</strong> - World's largest exchange (testnet available ✅)</li>
+                        <li><strong>Bybit</strong> - Popular derivatives exchange (testnet available ✅)</li>
+                        <li><strong>OKX</strong> - Major global exchange (testnet available ✅)</li>
+                        <li><strong>MEXC</strong> - Wide selection of altcoins</li>
+                        <li><strong>BingX</strong> - Copy trading platform</li>
+                    </ul>
+                    <p>
+                        We strongly recommend using <strong>testnet accounts</strong> for learning 
+                        and testing. Testnet provides the same API functionality with fake money, 
+                        eliminating financial risk.
+                    </p>
+                </div>
+            </details>
+        </div>
+
+        <!-- AI & Predictions -->
+        <div class="faq-category">
+            <h2>🤖 AI & Predictions</h2>
+
+            <details class="faq-item">
+                <summary>How does AI prediction work?</summary>
+                <div class="faq-answer">
+                    <p>
+                        The platform uses two complementary prediction methods:
+                    </p>
+                    <h4>1. Indicator-Based Prediction (Rule-Based)</h4>
+                    <ul>
+                        <li>Analyzes RSI (Relative Strength Index)</li>
+                        <li>Checks MACD (Moving Average Convergence Divergence)</li>
+                        <li>Evaluates EMA alignment (9, 20, 50, 100, 200)</li>
+                        <li>Assesses Bollinger Bands position</li>
+                        <li>Considers volume trends</li>
+                        <li>Combines scores into BUY/SELL/HOLD signal</li>
+                    </ul>
+                    <h4>2. AI Model Prediction (Machine Learning)</h4>
+                    <ul>
+                        <li>Uses scikit-learn RandomForest algorithms</li>
+                        <li>Trained on historical OHLCV data and computed indicators</li>
+                        <li>Predicts direction (up/down) and magnitude (price change %)</li>
+                        <li>Provides confidence scores</li>
+                    </ul>
+                    <p>
+                        <strong>Note:</strong> Both methods are educational demonstrations. 
+                        Real-world trading requires more sophisticated models, risk management, 
+                        and continuous monitoring.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>How accurate are the predictions?</summary>
+                <div class="faq-answer">
+                    <p style="color: #f59e0b; font-weight: 600;">
+                        ⚠️ Prediction accuracy varies significantly and should NOT be relied upon for real trading.
+                    </p>
+                    <p>
+                        <strong>Factors affecting accuracy:</strong>
+                    </p>
+                    <ul>
+                        <li>Market conditions (trending vs. ranging)</li>
+                        <li>Data quality and freshness</li>
+                        <li>Model training data size</li>
+                        <li>Sudden news events or black swan events</li>
+                        <li>Low liquidity or manipulation</li>
+                    </ul>
+                    <p>
+                        The AI models are trained on limited historical data and use simplified 
+                        features. Professional trading systems use far more sophisticated approaches, 
+                        including sentiment analysis, order flow, macro indicators, and ensemble models.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>What are EMA signals and Golden/Death crosses?</summary>
+                <div class="faq-answer">
+                    <p>
+                        <strong>EMA (Exponential Moving Average)</strong> is a trend-following indicator 
+                        that gives more weight to recent prices.
+                    </p>
+                    <h4>📈 Golden Cross (Bullish)</h4>
+                    <p>
+                        Occurs when a faster EMA (e.g., EMA 50) crosses <strong>above</strong> a slower 
+                        EMA (e.g., EMA 200). This is traditionally interpreted as a bullish signal, 
+                        suggesting an uptrend may be beginning.
+                    </p>
+                    <h4>📉 Death Cross (Bearish)</h4>
+                    <p>
+                        Occurs when a faster EMA crosses <strong>below</strong> a slower EMA. 
+                        This is traditionally interpreted as a bearish signal, suggesting a downtrend 
+                        may be starting.
+                    </p>
+                    <p>
+                        <strong>Important:</strong> These are lagging indicators and not always reliable. 
+                        They work best in trending markets but can produce false signals in ranging markets.
+                    </p>
+                </div>
+            </details>
+        </div>
+
+        <!-- Trading Bots -->
+        <div class="faq-category">
+            <h2>🤖 Trading Bots</h2>
+
+            <details class="faq-item">
+                <summary>What is a Grid Trading Bot?</summary>
+                <div class="faq-answer">
+                    <p>
+                        A Grid Bot creates multiple buy and sell orders at predefined price levels 
+                        within a specified range. It profits from price volatility by repeatedly 
+                        buying low and selling high as the price oscillates.
+                    </p>
+                    <h4>When to Use:</h4>
+                    <ul>
+                        <li>✅ Sideways/ranging markets with clear support and resistance</li>
+                        <li>✅ Low-volatility assets moving within a predictable range</li>
+                        <li>✅ When you expect price to stay within bounds</li>
+                    </ul>
+                    <h4>When NOT to Use:</h4>
+                    <ul>
+                        <li>❌ Strong trending markets (up or down)</li>
+                        <li>❌ High-volatility assets that can break out of range</li>
+                        <li>❌ Low-liquidity pairs with large spreads</li>
+                    </ul>
+                    <p>
+                        <strong>Tip:</strong> The platform's EMA signals can help identify when the 
+                        market is sideways (best for Grid) vs. trending (best for DCA).
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>What is a DCA (Dollar-Cost Averaging) Bot?</summary>
+                <div class="faq-answer">
+                    <p>
+                        DCA is an investment strategy where you buy (or sell) a fixed amount at regular 
+                        intervals or when price drops by a certain percentage. This smooths out market 
+                        volatility and reduces the risk of buying at the peak.
+                    </p>
+                    <h4>When to Use DCA BUY Bots:</h4>
+                    <ul>
+                        <li>✅ During downtrends to accumulate at lower prices</li>
+                        <li>✅ When you believe the asset will recover long-term</li>
+                        <li>✅ To build a position gradually without timing the market</li>
+                    </ul>
+                    <h4>When to Use DCA SELL Bots:</h4>
+                    <ul>
+                        <li>✅ During uptrends to take profits gradually</li>
+                        <li>✅ To exit a position without selling everything at once</li>
+                    </ul>
+                    <h4>Risk Warning:</h4>
+                    <p style="color: #ef4444;">
+                        DCA does NOT guarantee profit. In a continuously falling market (e.g., a project 
+                        going to zero), you will accumulate losses. Always use stop-loss limits and 
+                        only invest in fundamentally sound assets.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>How do trend-aware bots work?</summary>
+                <div class="faq-answer">
+                    <p>
+                        The platform integrates EMA signals into bot decision-making:
+                    </p>
+                    <h4>Grid Bots:</h4>
+                    <ul>
+                        <li>Paused during strong trends (BUY/SELL signals or Golden/Death crosses)</li>
+                        <li>Only run during sideways/neutral markets</li>
+                        <li>Prevents losses from breakouts above/below grid range</li>
+                    </ul>
+                    <h4>DCA Bots:</h4>
+                    <ul>
+                        <li>BUY bots only execute during uptrends or Golden Cross</li>
+                        <li>SELL bots only execute during downtrends or Death Cross</li>
+                        <li>Skipped if trend doesn't match bot direction</li>
+                    </ul>
+                    <p>
+                        This makes bots "smarter" by aligning them with market conditions.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Can I lose money with automated bots?</summary>
+                <div class="faq-answer">
+                    <p style="color: #ef4444; font-weight: 600;">
+                        ⚠️ YES. Bots do not guarantee profit and can lose money.
+                    </p>
+                    <p>
+                        <strong>Common ways bots lose money:</strong>
+                    </p>
+                    <ul>
+                        <li>Grid bots in trending markets (price breaks out of range)</li>
+                        <li>DCA bots in continuously falling markets (buying more of a losing asset)</li>
+                        <li>High exchange fees eating into small profits</li>
+                        <li>Slippage in low-liquidity markets</li>
+                        <li>Incorrect parameter configuration</li>
+                    </ul>
+                    <p>
+                        <strong>Risk Management Tips:</strong>
+                    </p>
+                    <ul>
+                        <li>Always set stop-loss limits</li>
+                        <li>Start with small amounts and testnet first</li>
+                        <li>Monitor bots regularly - they're not "set and forget"</li>
+                        <li>Use appropriate bot type for market conditions</li>
+                        <li>Don't over-leverage or use funds you can't afford to lose</li>
+                    </ul>
+                </div>
+            </details>
+        </div>
+
+        <!-- Technical & Account -->
+        <div class="faq-category">
+            <h2>⚙️ Technical & Account</h2>
+
+            <details class="faq-item">
+                <summary>How do I connect my exchange account?</summary>
+                <div class="faq-answer">
+                    <ol>
+                        <li>Navigate to the <strong>Exchange Accounts</strong> page</li>
+                        <li>Choose your exchange (Binance, Bybit, etc.)</li>
+                        <li>Create API keys on your exchange:
+                            <ul>
+                                <li>Log into your exchange account</li>
+                                <li>Go to API Management</li>
+                                <li>Create new API key with appropriate permissions</li>
+                                <li>Enable IP restrictions for security</li>
+                            </ul>
+                        </li>
+                        <li>Enter API Key and Secret in the form</li>
+                        <li>Check "Use Testnet" for safe testing</li>
+                        <li>Click "Link Exchange Account"</li>
+                        <li>Click "Test Connection" to verify it works</li>
+                    </ol>
+                    <p style="color: #ef4444;">
+                        <strong>Security Warning:</strong> Never share your API secret with anyone. 
+                        Enable IP restrictions and use read-only permissions if you're only fetching data.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>What is testnet mode?</summary>
+                <div class="faq-answer">
+                    <p>
+                        Testnet (or sandbox) is a replica of the exchange's production environment 
+                        that uses <strong>fake money</strong>. It has the same API, same features, 
+                        but zero financial risk.
+                    </p>
+                    <h4>Testnet Resources:</h4>
+                    <ul>
+                        <li><strong>Binance Testnet:</strong> <a href="https://testnet.binance.vision" target="_blank">testnet.binance.vision</a></li>
+                        <li><strong>Bybit Testnet:</strong> <a href="https://testnet.bybit.com" target="_blank">testnet.bybit.com</a></li>
+                        <li><strong>OKX Testnet:</strong> Available in account settings</li>
+                    </ul>
+                    <p>
+                        <strong>Recommended:</strong> Always test your strategies on testnet first 
+                        before using real funds!
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Is my data secure?</summary>
+                <div class="faq-answer">
+                    <p>
+                        <strong>For Educational/University Project:</strong>
+                    </p>
+                    <ul>
+                        <li>API secrets are stored with simple base64 encoding (NOT secure encryption)</li>
+                        <li>Database is local SQLite (not encrypted at rest)</li>
+                        <li>This is acceptable for testnet/educational purposes only</li>
+                    </ul>
+                    <p style="color: #f59e0b;">
+                        ⚠️ <strong>Do NOT use this system for production/real funds without proper security:</strong>
+                    </p>
+                    <ul>
+                        <li>API secrets must be encrypted with AES-256 or stored in a vault (AWS KMS, HashiCorp Vault)</li>
+                        <li>Database must be encrypted at rest</li>
+                        <li>Use HTTPS for all connections</li>
+                        <li>Implement proper authentication and authorization</li>
+                        <li>Regular security audits</li>
+                    </ul>
+                    <p>
+                        See our <a href="/privacy">Privacy Policy</a> for more details.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Why are my predictions showing "Not enough data"?</summary>
+                <div class="faq-answer">
+                    <p>
+                        This error occurs when there isn't sufficient historical price data in the 
+                        database to calculate indicators like EMA 200 (which requires at least 200 candles).
+                    </p>
+                    <h4>How to Fix:</h4>
+                    <ol>
+                        <li>Click the <strong>"🔄 Sync Price History Now"</strong> button in the error banner</li>
+                        <li>Wait for the system to fetch historical data from the exchange</li>
+                        <li>Refresh the page</li>
+                    </ol>
+                    <p>
+                        The system automatically syncs price data every 2 hours, but you can trigger 
+                        it manually anytime.
+                    </p>
+                </div>
+            </details>
+        </div>
+
+        <!-- Support -->
+        <div class="faq-category">
+            <h2>💬 Support & Contributing</h2>
+
+            <details class="faq-item">
+                <summary>I found a bug. Where do I report it?</summary>
+                <div class="faq-answer">
+                    <p>
+                        This is an open-source educational project. If you find bugs or have suggestions:
+                    </p>
+                    <ul>
+                        <li>Check existing issues on the GitHub repository</li>
+                        <li>Create a detailed bug report with:
+                            <ul>
+                                <li>Steps to reproduce</li>
+                                <li>Expected vs. actual behavior</li>
+                                <li>Screenshots if applicable</li>
+                                <li>Browser/OS information</li>
+                            </ul>
+                        </li>
+                        <li>Submit a pull request if you have a fix!</li>
+                    </ul>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Can I contribute to the project?</summary>
+                <div class="faq-answer">
+                    <p>
+                        Absolutely! Contributions are welcome:
+                    </p>
+                    <ul>
+                        <li>Code improvements and bug fixes</li>
+                        <li>Documentation enhancements</li>
+                        <li>New trading strategies</li>
+                        <li>UI/UX improvements</li>
+                        <li>Adding support for more exchanges</li>
+                        <li>Security hardening</li>
+                    </ul>
+                    <p>
+                        Fork the repository, make your changes, and submit a pull request!
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Where can I learn more about trading?</summary>
+                <div class="faq-answer">
+                    <p>
+                        <strong>Recommended Resources:</strong>
+                    </p>
+                    <h4>Books:</h4>
+                    <ul>
+                        <li>"Technical Analysis of Financial Markets" by John Murphy</li>
+                        <li>"A Random Walk Down Wall Street" by Burton Malkiel</li>
+                        <li>"Algorithmic Trading" by Ernie Chan</li>
+                    </ul>
+                    <h4>Online Courses:</h4>
+                    <ul>
+                        <li>Coursera - Financial Markets by Yale</li>
+                        <li>Udemy - Algorithmic Trading courses</li>
+                        <li>Khan Academy - Finance fundamentals</li>
+                    </ul>
+                    <h4>Documentation:</h4>
+                    <ul>
+                        <li>CCXT Library - <a href="https://docs.ccxt.com" target="_blank">docs.ccxt.com</a></li>
+                        <li>TA-Lib - Technical Analysis library</li>
+                        <li>Exchange API documentation (Binance, Bybit, etc.)</li>
+                    </ul>
+                    <p>
+                        <strong>Remember:</strong> Education is crucial, but paper trading (testnet) 
+                        is the best teacher!
+                    </p>
+                </div>
+            </details>
+        </div>
+    </div>
+</div>
+
+<style>
+/* FAQ Styling */
+.faq-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.faq-category {
+    margin-bottom: 3rem;
+}
+
+.faq-category h2 {
+    color: #1f2937;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 3px solid #667eea;
+}
+
+.faq-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.faq-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #667eea;
+}
+
+.faq-item summary {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.faq-item summary::-webkit-details-marker {
+    display: none;
+}
+
+.faq-item summary::before {
+    content: "▶";
+    color: #667eea;
+    font-size: 0.875rem;
+    transition: transform 0.3s ease;
+}
+
+.faq-item[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.faq-item[open] {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8efff 100%);
+}
+
+.faq-answer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #cbd5e1;
+    color: #374151;
+    line-height: 1.8;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.faq-answer h4 {
+    color: #4f46e5;
+    margin: 1rem 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.faq-answer p {
+    margin: 0.75rem 0;
+}
+
+.faq-answer ul, .faq-answer ol {
+    margin: 0.5rem 0 0.75rem 1.5rem;
+}
+
+.faq-answer li {
+    margin: 0.5rem 0;
+}
+
+.faq-answer a {
+    color: #4f46e5;
+    text-decoration: underline;
+}
+
+.faq-answer a:hover {
+    color: #667eea;
+}
+
+.faq-answer strong {
+    color: #1f2937;
+}
+
+@media (max-width: 768px) {
+    .faq-category h2 {
+        font-size: 1.25rem;
+    }
+    
+    .faq-item {
+        padding: 1rem;
+    }
+    
+    .faq-item summary {
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}
+

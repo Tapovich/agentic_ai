@@ -1,0 +1,1573 @@
+{% extends "base.html" %}
+
+{% block title %}AI Trading Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Page Title -->
+    <div class="page-header">
+        <h1>📈 AI Trading Dashboard</h1>
+        <p>Welcome, <strong>{{ user.username }}</strong>! Manage your portfolio and make smart trading decisions.</p>
+    </div>
+    
+    <!-- Top Stats Grid -->
+    <div class="stats-grid">
+        <!-- Balance Card -->
+        <div class="stat-card balance-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-content">
+                <div class="stat-label">Virtual Balance</div>
+                <div class="stat-value">${{ "%.2f"|format(user.balance) }}</div>
+            </div>
+        </div>
+        
+        <!-- Portfolio Value Card -->
+        <div class="stat-card">
+            <div class="stat-icon">💼</div>
+            <div class="stat-content">
+                <div class="stat-label">Portfolio Value</div>
+                <div class="stat-value">$0.00</div>
+                <div class="stat-change">Coming soon</div>
+            </div>
+        </div>
+        
+        <!-- Total Trades Card -->
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+                <div class="stat-label">Total Trades</div>
+                <div class="stat-value">0</div>
+                <div class="stat-change">Start trading!</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Market Overview Section (Live Prices from CoinMarketCap) -->
+    <div class="card market-overview-card" style="margin-bottom: 2rem;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>🌐 Market Overview</h2>
+                <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; color: #64748b;">
+                    Live prices from CoinMarketCap • Auto-updates every 30 seconds
+                </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span id="marketLastUpdate" style="font-size: 0.75rem; color: #94a3b8;">
+                    Loading...
+                </span>
+                <button id="refreshMarketBtn" class="btn btn-secondary btn-sm">
+                    🔄 Refresh
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Loading State -->
+            <div id="marketLoading" class="loading-spinner" style="display: block; padding: 2rem; text-align: center;">
+                <div class="spinner"></div>
+                <p style="margin-top: 1rem;">Loading market data...</p>
+            </div>
+            
+            <!-- Market Table -->
+            <div id="marketTableContainer" style="display: none; overflow-x: auto;">
+                <table class="market-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Coin</th>
+                            <th>Price</th>
+                            <th>1h %</th>
+                            <th>24h %</th>
+                            <th>7d %</th>
+                            <th>Market Cap</th>
+                            <th>Volume (24h)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marketTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Error State -->
+            <div id="marketError" style="display: none; padding: 2rem; text-align: center; color: #ef4444;">
+                <p style="margin: 0;">❌ Failed to load market data</p>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;" id="marketErrorMsg"></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+        <!-- Left Column: Chart & Prediction -->
+        <div class="left-column">
+            <!-- Price Chart Section -->
+            <!-- TradingView Widget Integration -->
+            <!-- This embeds a real-time cryptocurrency chart from TradingView -->
+            <!-- Widget is for visualization only - not connected to our trading logic -->
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h2>📊 Live Price Chart</h2>
+                    <div class="chart-controls">
+                        <!-- Symbol Selector Dropdown -->
+                        <!-- User can switch between cryptocurrencies -->
+                        <!-- Selected symbol is synced with: TradingView chart, backend session, and AI predictions -->
+                        <label for="symbolSelector" style="margin-right: 0.5rem; font-weight: 500;">Symbol:</label>
+                        <select id="symbolSelector" class="select-input" onchange="onSymbolChange()">
+                            <option value="BTCUSDT" {% if active_symbol == 'BTCUSDT' %}selected{% endif %}>Bitcoin (BTC)</option>
+                            <option value="ETHUSDT" {% if active_symbol == 'ETHUSDT' %}selected{% endif %}>Ethereum (ETH)</option>
+                            <option value="BNBUSDT" {% if active_symbol == 'BNBUSDT' %}selected{% endif %}>Binance Coin (BNB)</option>
+                            <option value="SOLUSDT" {% if active_symbol == 'SOLUSDT' %}selected{% endif %}>Solana (SOL)</option>
+                            <option value="ADAUSDT" {% if active_symbol == 'ADAUSDT' %}selected{% endif %}>Cardano (ADA)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- TradingView Widget Container -->
+                    <!-- This div will hold the embedded chart from TradingView -->
+                    <div id="tradingview_widget_container" style="height: 400px; width: 100%;"></div>
+                    <p class="chart-note" style="margin-top: 1rem;">
+                        📌 Real-time chart powered by <a href="https://www.tradingview.com/" target="_blank">TradingView</a>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Technical Indicators Section -->
+            <!-- Technical indicators are mathematical calculations based on price data -->
+            <!-- They help traders identify trends and make informed decisions -->
+            <div class="card indicators-card">
+                <div class="card-header">
+                    <h2>📊 Technical Indicators</h2>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="refreshIndicatorsBtn" class="btn btn-secondary btn-sm">
+                            🔄 Refresh
+                        </button>
+                        <button id="syncPricesBtn" class="btn btn-primary btn-sm">
+                            ⬇️ Sync Latest Prices
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Data Freshness Info (TASK 26) -->
+                    <div id="indicatorDataInfo" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.875rem;">
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <strong>Data Updated:</strong> <span id="indicatorLastUpdate">--</span>
+                            </div>
+                            <div>
+                                <strong>Candles Used:</strong> <span id="indicatorCandlesUsed">--</span>
+                            </div>
+                            <div>
+                                <strong>Source:</strong> <span id="indicatorDataSource" style="color: #16a34a;">Real-time</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="indicators-grid">
+                        <!-- MA 9: Very short-term (TASK 40: Replaced SMA with EMA) -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">MA 9</div>
+                            <div class="indicator-value" id="ma9Value">-</div>
+                            <small>Scalping trend</small>
+                        </div>
+                        
+                        <!-- MA 20: Short-term trend indicator -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">MA 20</div>
+                            <div class="indicator-value" id="ma20Value">-</div>
+                            <small>Short-term trend</small>
+                        </div>
+                        
+                        <!-- MA 50: Medium-term trend indicator -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">MA 50</div>
+                            <div class="indicator-value" id="ma50Value">-</div>
+                            <small>Medium-term trend</small>
+                        </div>
+                        
+                        <!-- MA 200: Major trend -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">MA 200</div>
+                            <div class="indicator-value" id="ma200Value">-</div>
+                            <small>Major trend</small>
+                        </div>
+                        
+                        <!-- RSI 14: Momentum indicator -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">RSI 14</div>
+                            <div class="indicator-value" id="rsi14Value">-</div>
+                            <small id="rsiSignal">Momentum</small>
+                        </div>
+                        
+                        <!-- Current Price -->
+                        <div class="indicator-item">
+                            <div class="indicator-label">Current Price</div>
+                            <div class="indicator-value" id="currentPriceValue">-</div>
+                            <small id="trendSignal">-</small>
+                        </div>
+                    </div>
+                    
+                    <!-- TASK 42: EMA-based Trading Signals -->
+                    <div id="maSignalsBox" style="margin-top: 1.5rem; padding: 1.25rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white;">
+                        <h3 style="margin: 0 0 1rem 0; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>⚡</span>
+                            <span>MA Trading Signals</span>
+                        </h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <!-- Overall Signal -->
+                            <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px;">
+                                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Overall Signal</div>
+                                <div id="maOverallSignal" style="font-size: 1.75rem; font-weight: bold;">--</div>
+                            </div>
+                            
+                            <!-- Confidence -->
+                            <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px;">
+                                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Confidence</div>
+                                <div id="maConfidence" style="font-size: 1.75rem; font-weight: bold;">--</div>
+                            </div>
+                            
+                            <!-- Long-term Trend -->
+                            <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px;">
+                                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Long-term</div>
+                                <div id="maTrendLabel" style="font-size: 1.1rem; font-weight: 600;">--</div>
+                            </div>
+                            
+                            <!-- Short-term -->
+                            <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px;">
+                                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Short-term</div>
+                                <div id="maShortTerm" style="font-size: 1.1rem; font-weight: 600;">--</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Golden/Death Cross Alert -->
+                        <div id="emaCrossInfo" style="margin-top: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.2); border-radius: 8px; font-size: 0.95rem; font-weight: 500; display: none;">
+                            --
+                        </div>
+                        
+                        <!-- Explanation -->
+                        <div id="maExplanation" style="margin-top: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 0.875rem; line-height: 1.6;">
+                            --
+                        </div>
+                        
+                        <!-- Educational Disclaimer -->
+                        <div style="margin-top: 1rem; font-size: 0.75rem; opacity: 0.75; text-align: center;">
+                            ⚠️ Educational signals only. Not financial advice. Always do your own research.
+                        </div>
+                    </div>
+                    
+                    <div class="indicators-legend" style="margin-top: 1.5rem;">
+                        <p><strong>EMA Guide (TASK 40):</strong></p>
+                        <ul>
+                            <li>📊 <strong>MA 9/20:</strong> Short-term signals (day trading)</li>
+                            <li>📈 <strong>MA 50:</strong> Medium-term trend (swing trading)</li>
+                            <li>🎯 <strong>MA 200:</strong> Major trend (bull/bear market)</li>
+                            <li>🌟 <strong>Golden Cross:</strong> EMA50 > EMA200 (major bullish)</li>
+                            <li>💀 <strong>Death Cross:</strong> EMA50 < EMA200 (major bearish)</li>
+                        </ul>
+                        <p style="margin-top: 1rem;"><strong>RSI Guide:</strong></p>
+                        <ul>
+                            <li>🔴 <strong>&gt; 70:</strong> Overbought (may drop)</li>
+                            <li>⚪ <strong>40-60:</strong> Neutral</li>
+                            <li>🟢 <strong>&lt; 30:</strong> Oversold (may rise)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Prediction Section (TASK 26: Now uses real-time data) -->
+            <div class="card prediction-card">
+                <div class="card-header">
+                    <h2>🤖 AI Price Prediction</h2>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="refreshPredictionBtn" class="btn btn-secondary btn-sm">
+                            🔄 Get New Prediction
+                        </button>
+                        <button id="aiTradeBtn" class="btn btn-primary btn-sm" style="display: none;">
+                            ⚡ Execute AI Trade
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Data Freshness Info (TASK 26) -->
+                    <div id="predictionDataInfo" style="display: none; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.875rem;">
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <strong>Last Price:</strong> <span id="predictionLastPrice">--</span>
+                            </div>
+                            <div>
+                                <strong>Data Updated:</strong> <span id="predictionLastUpdate">--</span>
+                            </div>
+                            <div>
+                                <strong>Source:</strong> <span id="predictionDataSource" style="color: #0891b2;">Real-time</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="predictionContent">
+                        {% if prediction %}
+                        <!-- Display existing prediction -->
+                        <div class="prediction-result">
+                            <div class="prediction-direction {{ 'up' if prediction.direction == 'UP' else 'down' }}">
+                                {{ prediction.direction }}
+                            </div>
+                            <div class="prediction-confidence">
+                                <div class="confidence-label">Confidence</div>
+                                <div class="confidence-value">{{ prediction.confidence_pct }}%</div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: {{ prediction.confidence_pct }}%"></div>
+                                </div>
+                            </div>
+                            <div class="prediction-meta">
+                                <small>Generated: {{ prediction.timestamp }}</small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- No prediction yet -->
+                        <div class="prediction-empty">
+                            <p>No prediction available yet.</p>
+                            <p>Click "Get New Prediction" to generate AI prediction.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div id="predictionLoading" class="loading-spinner" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Generating prediction...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column: Trading & Portfolio -->
+        <div class="right-column">
+            <!-- Paper Trading Section -->
+            <div class="card trading-card">
+                <div class="card-header">
+                    <h2>💸 Paper Trading</h2>
+                </div>
+                <div class="card-body">
+                    <form id="tradingForm" class="trading-form">
+                        <!-- Symbol Input -->
+                        <!-- Synced with chart symbol selector for consistency -->
+                        <div class="form-group">
+                            <label for="tradeSymbol">Symbol</label>
+                            <select id="tradeSymbol" class="form-input" required>
+                                <option value="BTCUSDT" {% if active_symbol == 'BTCUSDT' %}selected{% endif %}>Bitcoin (BTCUSDT)</option>
+                                <option value="ETHUSDT" {% if active_symbol == 'ETHUSDT' %}selected{% endif %}>Ethereum (ETHUSDT)</option>
+                                <option value="BNBUSDT" {% if active_symbol == 'BNBUSDT' %}selected{% endif %}>Binance Coin (BNBUSDT)</option>
+                                <option value="SOLUSDT" {% if active_symbol == 'SOLUSDT' %}selected{% endif %}>Solana (SOLUSDT)</option>
+                                <option value="ADAUSDT" {% if active_symbol == 'ADAUSDT' %}selected{% endif %}>Cardano (ADAUSDT)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Quantity Input -->
+                        <div class="form-group">
+                            <label for="tradeQuantity">Quantity</label>
+                            <input 
+                                type="number" 
+                                id="tradeQuantity" 
+                                class="form-input" 
+                                placeholder="0.001"
+                                step="0.001"
+                                min="0.001"
+                                required
+                            >
+                        </div>
+                        
+                        <!-- Current Price Display -->
+                        <div class="form-group">
+                            <label>Current Price</label>
+                            <div class="price-display" id="currentPrice">
+                                $--,---
+                            </div>
+                        </div>
+                        
+                        <!-- Estimated Total -->
+                        <div class="form-group">
+                            <label>Estimated Total</label>
+                            <div class="total-display" id="estimatedTotal">
+                                $0.00
+                            </div>
+                        </div>
+                        
+                        <!-- Trading Buttons -->
+                        <div class="trading-buttons">
+                            <button type="button" id="buyBtn" class="btn btn-success btn-block">
+                                📈 Buy
+                            </button>
+                            <button type="button" id="sellBtn" class="btn btn-danger btn-block">
+                                📉 Sell
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="trading-note">
+                        <small>
+                            ⚠️ This is paper trading with virtual money. No real transactions.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Info Card -->
+            <div class="card account-card">
+                <div class="card-header">
+                    <h2>👤 Account Info</h2>
+                </div>
+                <div class="card-body">
+                    <div class="account-info">
+                        <div class="info-row">
+                            <span class="info-label">Username:</span>
+                            <span class="info-value">{{ user.username }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value">{{ user.email }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Member Since:</span>
+                            <span class="info-value">{{ user.created_at if user.created_at else 'N/A' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Portfolio Table Section -->
+    <div class="card portfolio-card">
+        <div class="card-header">
+            <h2>💼 Your Portfolio</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="portfolio-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Quantity</th>
+                            <th>Average Price</th>
+                            <th>Current Price</th>
+                            <th>Total Value</th>
+                            <th>Profit/Loss</th>
+                            <th>Change %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolioTableBody">
+                        <!-- Portfolio items will be inserted here via JavaScript -->
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <div class="empty-icon">📭</div>
+                                <p>No positions yet. Start trading to build your portfolio!</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Live Exchange Portfolio Section -->
+    <!-- This section shows REAL balances from linked exchange accounts -->
+    <!-- Uses CCXT library to fetch data from Binance, Bybit, OKX, etc. -->
+    <!-- ⚠️ For university project: Use TESTNET accounts only! -->
+    <div class="card exchange-portfolio-card">
+        <div class="card-header">
+            <h2>🌐 Live Exchange Portfolio</h2>
+            <div class="exchange-selector">
+                <label for="exchangeAccountSelect" style="margin-right: 0.5rem;">Account:</label>
+                <select id="exchangeAccountSelect" class="select-input">
+                    <option value="">Select exchange account...</option>
+                    <!-- Options will be loaded via JavaScript -->
+                </select>
+                <button id="refreshExchangeBtn" class="btn btn-secondary btn-sm" style="margin-left: 0.5rem;" disabled>
+                    🔄 Refresh
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Loading State -->
+            <div id="exchangeLoading" class="loading-spinner" style="display: none;">
+                <div class="spinner"></div>
+                <p>Fetching data from exchange...</p>
+            </div>
+            
+            <!-- No Account Selected -->
+            <div id="exchangeEmptyState" class="empty-state">
+                <div class="empty-icon">🔗</div>
+                <p>Select an exchange account above to view live balances and positions.</p>
+                <p><a href="/exchanges">Link an exchange account</a> to get started.</p>
+            </div>
+            
+            <!-- Portfolio Display -->
+            <div id="exchangePortfolioDisplay" style="display: none;">
+                <!-- Exchange Info -->
+                <div class="exchange-info">
+                    <h3>
+                        <span class="exchange-badge" id="exchangeBadge"></span>
+                        <span id="exchangeLabel"></span>
+                        <span class="mode-badge" id="exchangeMode"></span>
+                    </h3>
+                </div>
+                
+                <!-- Balances Table -->
+                <div class="exchange-section">
+                    <h4>💰 Account Balances</h4>
+                    <div class="table-responsive">
+                        <table class="exchange-balance-table">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Free</th>
+                                    <th>Used (In Orders)</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="exchangeBalancesBody">
+                                <!-- Balances will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Positions Table (for futures) -->
+                <div class="exchange-section" id="positionsSection" style="display: none;">
+                    <h4>📊 Open Positions (Futures)</h4>
+                    <div class="table-responsive">
+                        <table class="exchange-positions-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Side</th>
+                                    <th>Size</th>
+                                    <th>Entry Price</th>
+                                    <th>Current Price</th>
+                                    <th>Unrealized P/L</th>
+                                    <th>Leverage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="exchangePositionsBody">
+                                <!-- Positions will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- TASK 30: Tabbed Navigation for Tools & Analytics -->
+    <div class="tools-navigation">
+        <ul id="toolsNav" class="tools-nav">
+            <li data-section="gridBotsSection" class="nav-active">
+                <span class="nav-icon">🤖</span>
+                <span class="nav-label">Grid Bots</span>
+            </li>
+            <li data-section="dcaBotsSection">
+                <span class="nav-icon">📅</span>
+                <span class="nav-label">DCA Bots</span>
+            </li>
+            <li data-section="fearGreedSection">
+                <span class="nav-icon">😱</span>
+                <span class="nav-label">Fear & Greed</span>
+            </li>
+            <li data-section="marketOverviewSection">
+                <span class="nav-icon">🌐</span>
+                <span class="nav-label">Market Overview</span>
+            </li>
+            <li data-section="profileSection">
+                <span class="nav-icon">👤</span>
+                <span class="nav-label">Profile & Subscription</span>
+            </li>
+            <li onclick="window.location.href='/advanced_prediction'" style="cursor: pointer;">
+                <span class="nav-icon">🔮</span>
+                <span class="nav-label">Advanced Prediction</span>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- TASK 30: Tool Sections Container -->
+    <div class="tool-sections-container">
+        <!-- Grid Bots Section -->
+        <div id="gridBotsSection" class="tool-section tool-section-active">
+            <!-- Grid Bot Section -->
+            <!-- Grid trading is an automated strategy that creates multiple buy/sell orders -->
+            <!-- at different price levels to profit from market volatility -->
+            <div class="card grid-bot-card">
+        <div class="card-header">
+            <h2>🤖 Grid Trading Bot</h2>
+            <button id="toggleGridBotForm" class="btn btn-secondary btn-sm">
+                ➕ Create New Bot
+            </button>
+        </div>
+        
+        <!-- TASK 49: How to Use Grid Bot Help Box -->
+        <details id="gridHelpBox" class="help-box">
+            <summary>❓ How to use Grid Bot?</summary>
+            <div class="help-content">
+                <h4>📊 What is Grid Trading?</h4>
+                <p>
+                    Grid trading is an automated strategy that creates multiple buy and sell orders 
+                    at different price levels within a defined range. It profits from price volatility 
+                    by repeatedly buying low and selling high.
+                </p>
+                
+                <h4>📝 Key Parameters:</h4>
+                <ul>
+                    <li><strong>Symbol:</strong> The trading pair (e.g., BTCUSDT)</li>
+                    <li><strong>Price Range:</strong> Lower and upper bounds for grid levels
+                        <span class="field-help" title="Set slightly below and above current price">ℹ️</span>
+                    </li>
+                    <li><strong>Number of Grids:</strong> How many buy/sell levels to create (typically 5-20)</li>
+                    <li><strong>Investment Amount:</strong> Total capital to allocate to the bot</li>
+                    <li><strong>Grid Type:</strong>
+                        <ul>
+                            <li>Arithmetic: Equal price spacing (good for stable ranges)</li>
+                            <li>Geometric: Percentage-based spacing (good for volatile ranges)</li>
+                        </ul>
+                    </li>
+                </ul>
+                
+                <h4>💡 Best Practices:</h4>
+                <ul>
+                    <li>✅ Works best in <strong>sideways/ranging markets</strong></li>
+                    <li>✅ Set price range based on recent support/resistance levels</li>
+                    <li>✅ Start with fewer grids (5-10) and smaller investment for testing</li>
+                    <li>✅ Use testnet exchanges for practice</li>
+                    <li>⚠️ Not ideal for strong trending markets (use DCA instead)</li>
+                </ul>
+                
+                <h4>🔧 Advanced Options:</h4>
+                <ul>
+                    <li><strong>Trailing Up:</strong> Automatically adjusts range when price breaks upper limit</li>
+                    <li><strong>Grid Trigger Price:</strong> Bot only activates when price reaches this level</li>
+                    <li><strong>Take Profit (%):</strong> Closes all positions at this profit percentage</li>
+                    <li><strong>Stop Loss Price:</strong> Closes bot if price drops below this level</li>
+                </ul>
+            </div>
+        </details>
+        
+        <div class="card-body">
+            <!-- Grid Bot Creation Form -->
+            <!-- This form allows users to create automated grid trading bots -->
+            <div id="gridBotForm" class="grid-bot-form" style="display: none;">
+                <h3>Create Grid Bot</h3>
+                <p class="form-description">
+                    Grid trading profits from price volatility by placing buy orders at lower prices 
+                    and sell orders at higher prices within a defined range.
+                </p>
+                
+                <!-- Strategy Mode Tabs -->
+                <div class="strategy-tabs">
+                    <button type="button" class="strategy-tab" data-mode="ai" onclick="switchGridMode('ai')">
+                        🤖 AI
+                    </button>
+                    <button type="button" class="strategy-tab strategy-tab-active" data-mode="manual" onclick="switchGridMode('manual')">
+                        ✋ Manual
+                    </button>
+                    <button type="button" class="strategy-tab" data-mode="popular" onclick="switchGridMode('popular')">
+                        ⭐ Popular
+                    </button>
+                </div>
+                
+                <form id="createGridBotForm" class="trading-form">
+                    <!-- AI Generated Parameters Section (Hidden by default) -->
+                    <div id="gridAISection" class="ai-section" style="display: none;">
+                        <div style="text-align: center; padding: 2rem;">
+                            <div class="placeholder-icon" style="font-size: 3rem;">🤖</div>
+                            <h4>AI-Powered Grid Strategy</h4>
+                            <p style="color: #6b7280; margin: 1rem 0;">Our AI will analyze market conditions and suggest optimal grid parameters for {{ active_symbol or 'BTC' }}</p>
+                            <button type="button" class="btn btn-primary" onclick="generateAIGridParameters()">
+                                ✨ Generate AI Parameters
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Manual/Popular Section -->
+                    <div id="gridManualSection">
+                        <div class="form-group">
+                            <label for="gridSymbol">Symbol</label>
+                            <select id="gridSymbol" class="form-input" required>
+                                <option value="BTCUSDT" {% if active_symbol == 'BTCUSDT' %}selected{% endif %}>Bitcoin (BTCUSDT)</option>
+                                <option value="ETHUSDT" {% if active_symbol == 'ETHUSDT' %}selected{% endif %}>Ethereum (ETHUSDT)</option>
+                                <option value="BNBUSDT" {% if active_symbol == 'BNBUSDT' %}selected{% endif %}>Binance Coin (BNBUSDT)</option>
+                                <option value="SOLUSDT" {% if active_symbol == 'SOLUSDT' %}selected{% endif %}>Solana (SOLUSDT)</option>
+                                <option value="ADAUSDT" {% if active_symbol == 'ADAUSDT' %}selected{% endif %}>Cardano (ADAUSDT)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <label style="margin: 0;">1. Price Range</label>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="autoFillGridPrice()" style="padding: 0.25rem 0.75rem;">
+                                    Auto Fill
+                                </button>
+                            </div>
+                            <div class="form-row" style="gap: 1rem;">
+                                <div style="flex: 1;">
+                                    <input type="number" id="gridLowerPrice" class="form-input" 
+                                           placeholder="Lower" step="0.01" min="0" required>
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="number" id="gridUpperPrice" class="form-input" 
+                                           placeholder="Upper" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            <div class="price-display" id="gridCurrentPrice" style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                                Current: $--,---
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gridCount">2. Number of Grids</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="number" id="gridCount" class="form-input" 
+                                       placeholder="2-100" value="10" min="2" max="100" required 
+                                       style="flex: 2;">
+                                <select id="gridType" class="form-input" style="flex: 1;">
+                                    <option value="ARITHMETIC">Arithmetic</option>
+                                    <option value="GEOMETRIC">Geometric</option>
+                                </select>
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <small style="color: #6b7280;">
+                                    <span id="gridTypeExplain">Arithmetic: Equal price intervals ($100, $110, $120)</span>
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gridInvestmentAmount">3. Investment</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <div style="position: relative; flex: 3;">
+                                    <input type="number" id="gridInvestmentAmount" class="form-input" 
+                                           placeholder="100" step="0.01" min="10" required>
+                                </div>
+                                <select id="gridQuoteCurrency" class="form-input" style="flex: 1;">
+                                    <option value="USDT" selected>USDT</option>
+                                    <option value="BTC">BTC</option>
+                                    <option value="ETH">ETH</option>
+                                    <option value="BNB">BNB</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+                                <small style="color: #6b7280;">Available Balance</small>
+                                <small style="color: #6b7280;">{{ "%.2f"|format(user.balance) }} USDT</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced (Optional) - TASK 38: Binance-Style -->
+                        <div class="form-group" style="margin-top: 1.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;" onclick="toggleGridAdvanced()">
+                                <span id="gridAdvancedIcon">▶</span>
+                                <label style="cursor: pointer; margin: 0; font-weight: 600;">Advanced (Optional)</label>
+                                <small style="color: #6b7280; margin-left: auto;">Binance-Style Features</small>
+                            </div>
+                            <div id="gridAdvancedOptions" style="display: none; margin-top: 1rem; padding: 1.5rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <!-- Trailing Up -->
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; cursor: pointer;">
+                                        <input type="checkbox" id="gridTrailingUp" style="margin-right: 0.5rem; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-weight: 500;">Trailing Up</span>
+                                    </label>
+                                    <small style="color: #6b7280; display: block; margin-left: 26px; margin-top: 0.25rem;">
+                                        Grid follows price upward in bull markets
+                                    </small>
+                                </div>
+                                
+                                <!-- Grid Trigger Price -->
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label for="gridTriggerPrice">Grid Trigger Price</label>
+                                    <input type="number" id="gridTriggerPrice" class="form-input" 
+                                           placeholder="Optional - Activate at specific price" step="0.01" min="0">
+                                    <small style="color: #6b7280; display: block; margin-top: 0.25rem;">
+                                        Bot waits until market reaches this price (leave empty for immediate activation)
+                                    </small>
+                                </div>
+                                
+                                <!-- Take Profit -->
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label for="gridTakeProfitPct">Take Profit (%)</label>
+                                    <input type="number" id="gridTakeProfitPct" class="form-input" 
+                                           placeholder="e.g., 10 for 10%" step="0.1" min="0" max="1000">
+                                    <small style="color: #6b7280; display: block; margin-top: 0.25rem;">
+                                        Auto-close grid when total profit reaches this percentage
+                                    </small>
+                                </div>
+                                
+                                <!-- Stop Loss -->
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label for="gridStopLossPrice">Stop Loss Price</label>
+                                    <input type="number" id="gridStopLossPrice" class="form-input" 
+                                           placeholder="Optional - Stop at specific price" step="0.01" min="0">
+                                    <small style="color: #6b7280; display: block; margin-top: 0.25rem;">
+                                        Auto-close grid when price drops below this level
+                                    </small>
+                                </div>
+                                
+                                <!-- Sell All on Stop -->
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label style="display: flex; align-items: center; cursor: pointer;">
+                                        <input type="checkbox" id="gridSellAllOnStop" style="margin-right: 0.5rem; width: 18px; height: 18px; cursor: pointer;">
+                                        <span style="font-weight: 500;">Sell All on Stop Loss</span>
+                                    </label>
+                                    <small style="color: #6b7280; display: block; margin-left: 26px; margin-top: 0.25rem;">
+                                        Liquidate entire position when stop loss triggers (otherwise keep holdings)
+                                    </small>
+                                </div>
+                                
+                                <!-- Educational Note -->
+                                <div style="margin-top: 1.5rem; padding: 1rem; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px;">
+                                    <p style="margin: 0; font-size: 0.875rem; color: #1e40af;">
+                                        <strong>ℹ️ Educational Feature:</strong> These advanced options are inspired by Binance Spot Grid Trading.
+                                        Configuration is stored but requires additional execution logic for full automation.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem;">
+                            Create
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- My Grid Bots Table -->
+            <!-- Shows all grid bots created by the user -->
+            <div class="grid-bots-section">
+                <h3>My Grid Bots</h3>
+                <div class="table-responsive">
+                    <table class="grid-bots-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Symbol</th>
+                                <th>Price Range</th>
+                                <th>Grids</th>
+                                <th>Investment</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gridBotsTableBody">
+                            <!-- Grid bots will be inserted here via JavaScript -->
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    <div class="empty-icon">🤖</div>
+                                    <p>No grid bots yet. Create one to automate your trading!</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Grid Levels Display -->
+            <!-- Shows detailed grid levels when user clicks on a bot -->
+            <div id="gridLevelsSection" class="grid-levels-section" style="display: none;">
+                <h3>Grid Levels for Bot #<span id="selectedBotId"></span></h3>
+                <button id="closeGridLevels" class="btn btn-secondary btn-sm" style="float: right;">
+                    ✖ Close
+                </button>
+                <div style="clear: both;"></div>
+                
+                <div class="grid-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Levels:</span>
+                        <span id="statTotalLevels">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Buy Levels:</span>
+                        <span id="statBuyLevels" class="buy-text">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Sell Levels:</span>
+                        <span id="statSellLevels" class="sell-text">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Filled:</span>
+                        <span id="statFilled">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Pending:</span>
+                        <span id="statPending">0</span>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="grid-levels-table">
+                        <thead>
+                            <tr>
+                                <th>Level</th>
+                                <th>Price</th>
+                                <th>Order Type</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gridLevelsTableBody">
+                            <!-- Grid levels will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+        <!-- End Grid Bots Section -->
+        
+        <!-- DCA Bots Section -->
+        <div id="dcaBotsSection" class="tool-section">
+    <!-- DCA (Dollar-Cost Averaging) Bots Section (Task 25) -->
+    <!-- Automates regular purchases at fixed intervals -->
+    <div class="card grid-bot-card">
+        <div class="card-header">
+            <h2>📅 DCA Bots</h2>
+            <small style="color: #6b7280;">Automated Dollar-Cost Averaging Strategy</small>
+        </div>
+        
+        <!-- TASK 49: How to Use DCA Bot Help Box -->
+        <details id="dcaHelpBox" class="help-box">
+            <summary>❓ How to use DCA Bot?</summary>
+            <div class="help-content">
+                <h4>📈 What is Dollar-Cost Averaging (DCA)?</h4>
+                <p>
+                    DCA is an investment strategy where you buy a fixed dollar amount of an asset 
+                    at regular intervals, regardless of price. This smooths out market volatility 
+                    and reduces the impact of timing the market.
+                </p>
+                
+                <h4>📝 Key Parameters:</h4>
+                <ul>
+                    <li><strong>Symbol:</strong> The cryptocurrency to buy/sell (e.g., BTCUSDT)</li>
+                    <li><strong>Side:</strong>
+                        <ul>
+                            <li>BUY: Accumulate assets over time (for long-term holding)</li>
+                            <li>SELL: Gradually exit a position</li>
+                        </ul>
+                    </li>
+                    <li><strong>Base Order Size:</strong> Amount for the first purchase
+                        <span class="field-help" title="Start with a conservative amount">ℹ️</span>
+                    </li>
+                    <li><strong>DCA Order Size:</strong> Amount for subsequent purchases</li>
+                    <li><strong>Max DCA Orders:</strong> Maximum number of additional orders (safety limit)</li>
+                    <li><strong>Price Deviation (%):</strong> How much price must drop before next DCA order
+                        <ul>
+                            <li>Example: 2% means buy more when price drops 2% from previous order</li>
+                        </ul>
+                    </li>
+                    <li><strong>Take Profit (%):</strong> Close all positions when profit reaches this level</li>
+                </ul>
+                
+                <h4>💡 Best Practices:</h4>
+                <ul>
+                    <li>✅ Works best in <strong>trending markets</strong> (especially downtrends for BUY bots)</li>
+                    <li>✅ Use BUY bots during bearish markets to accumulate at lower prices</li>
+                    <li>✅ Set reasonable price deviation (1-5%) based on volatility</li>
+                    <li>✅ Limit max orders (3-7) to control risk</li>
+                    <li>✅ Always set a stop-loss percentage for risk management</li>
+                    <li>⚠️ Not ideal for sideways markets (use Grid Bot instead)</li>
+                </ul>
+                
+                <h4>🔧 Advanced Options:</h4>
+                <ul>
+                    <li><strong>Trigger Price:</strong> Bot only starts when price reaches this level</li>
+                    <li><strong>Price Deviation Multiplier:</strong> Increase deviation for each level (e.g., 1.5x)</li>
+                    <li><strong>DCA Order Size Multiplier:</strong> Increase order size for each level (martingale strategy)</li>
+                    <li><strong>Cooldown (seconds):</strong> Minimum time between orders</li>
+                    <li><strong>Price Range:</strong> Only operate within specific price bounds</li>
+                    <li><strong>Stop Loss (%):</strong> Maximum acceptable loss before bot stops</li>
+                </ul>
+                
+                <h4>⚠️ Risk Warning:</h4>
+                <p style="color: #ef4444; font-weight: 600;">
+                    DCA does NOT guarantee profit. In a continuously falling market, you may 
+                    accumulate losses. Always use stop-loss and never invest more than you can afford to lose.
+                </p>
+            </div>
+        </details>
+        
+        <div class="card-body">
+            <p class="form-description">
+                DCA bots automate regular cryptocurrency purchases at fixed intervals, 
+                helping you average out market volatility over time.
+            </p>
+            
+            <form id="createDCABotForm" class="trading-form" style="border-top: 2px solid #e5e7eb; padding-top: 1.5rem; margin-top: 1.5rem;">
+                <h3>Create New DCA Bot</h3>
+                
+                <!-- Recommended Parameters Button -->
+                <div style="margin-bottom: 1.5rem;">
+                    <button type="button" class="btn btn-secondary btn-block" onclick="recommendDCAParameters()" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <span>✨</span>
+                        <span>Recommended parameters</span>
+                    </button>
+                </div>
+                
+                <!-- Symbol Selection -->
+                <div class="form-group">
+                    <label for="dcaSymbol">Symbol</label>
+                    <select id="dcaSymbol" class="form-input" required>
+                        <option value="BTCUSDT" {% if active_symbol == 'BTCUSDT' %}selected{% endif %}>Bitcoin (BTCUSDT)</option>
+                        <option value="ETHUSDT" {% if active_symbol == 'ETHUSDT' %}selected{% endif %}>Ethereum (ETHUSDT)</option>
+                        <option value="BNBUSDT" {% if active_symbol == 'BNBUSDT' %}selected{% endif %}>Binance Coin (BNBUSDT)</option>
+                        <option value="SOLUSDT" {% if active_symbol == 'SOLUSDT' %}selected{% endif %}>Solana (SOLUSDT)</option>
+                        <option value="ADAUSDT" {% if active_symbol == 'ADAUSDT' %}selected{% endif %}>Cardano (ADAUSDT)</option>
+                    </select>
+                </div>
+                
+                <!-- Current Price Display (Task 25) -->
+                <div class="form-group">
+                    <label>Current Purchase Price</label>
+                    <div class="price-display" id="dcaCurrentPrice" style="font-size: 1.1rem; color: #10b981;">
+                        $--,---
+                    </div>
+                    <small style="color: #6b7280;">💡 Each cycle will buy at the current market price</small>
+                </div>
+                
+                <!-- Amount Per Cycle -->
+                <div class="form-group">
+                    <label for="dcaAmount">Amount Per Cycle ($)</label>
+                    <input type="number" id="dcaAmount" class="form-input" 
+                           placeholder="100" step="0.01" min="1" required>
+                    <small>Fixed USD amount to invest each cycle</small>
+                </div>
+                
+                <!-- Interval -->
+                <div class="form-group">
+                    <label for="dcaInterval">Interval</label>
+                    <select id="dcaInterval" class="form-input" required>
+                        <option value="hourly">Hourly</option>
+                        <option value="daily" selected>Daily</option>
+                        <option value="weekly">Weekly</option>
+                    </select>
+                    <small>How often to execute purchases</small>
+                </div>
+                
+                <!-- Total Cycles -->
+                <div class="form-group">
+                    <label for="dcaTotalCycles">Total Cycles</label>
+                    <input type="number" id="dcaTotalCycles" class="form-input" 
+                           placeholder="10" min="1" max="1000" required>
+                    <small>Number of purchase cycles (1-1000)</small>
+                </div>
+                
+                <!-- Exchange Account -->
+                <div class="form-group">
+                    <label for="dcaExchangeAccount">Exchange Account</label>
+                    <select id="dcaExchangeAccount" class="form-input" required>
+                        <option value="">Select exchange account...</option>
+                        <!-- Will be populated via JS -->
+                    </select>
+                    <small>Choose which exchange to use (visit <a href="/exchanges">/exchanges</a> to add)</small>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary btn-block">
+                    📅 Create DCA Bot
+                </button>
+            </form>
+            
+            <!-- My DCA Bots Table -->
+            <div class="grid-bots-section" style="margin-top: 2rem;">
+                <h3>My DCA Bots</h3>
+                <div class="table-responsive">
+                    <table class="grid-bots-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Symbol</th>
+                                <th>Amount/Cycle</th>
+                                <th>Interval</th>
+                                <th>Cycles</th>
+                                <th>Completed</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dcaBotsTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 2rem;">
+                                    No DCA bots yet. Create one above!
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+        <!-- End DCA Bots Section -->
+        
+        <!-- Fear & Greed Index Section (TASK 37) -->
+        <div id="fearGreedSection" class="tool-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>😱 Fear & Greed Index</h2>
+                    <small style="color: #6b7280;">Market sentiment indicator (0-100 scale)</small>
+                </div>
+                <div class="card-body">
+                    <!-- Fear & Greed Card Content -->
+                    <div id="fearGreedCard">
+                        <!-- Loading state -->
+                        <div class="loading-spinner" style="text-align: center; padding: 2rem;">
+                            <div class="spinner"></div>
+                            <p>Loading Fear & Greed Index...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Info Box -->
+                    <div style="margin-top: 2rem; padding: 1.25rem; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+                        <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem;">💡 How to use the Fear & Greed Index:</h4>
+                        <ul style="margin: 0.5rem 0 0 1.5rem; font-size: 0.875rem; line-height: 1.6;">
+                            <li><strong>Extreme Fear (0-24)</strong>: Market oversold - Potential buying opportunity</li>
+                            <li><strong>Fear (25-49)</strong>: Market cautious - Wait and watch</li>
+                            <li><strong>Greed (50-74)</strong>: Market bullish - Be careful</li>
+                            <li><strong>Extreme Greed (75-100)</strong>: Market overbought - Consider selling</li>
+                        </ul>
+                        <p style="margin: 0.75rem 0 0 0; font-size: 0.875rem; font-style: italic;">
+                            "Be greedy when others are fearful, be fearful when others are greedy" - Warren Buffett
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Fear & Greed Section -->
+        
+        <!-- Market Overview Section (TASK 37) -->
+        <div id="marketOverviewSection" class="tool-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>🌐 Market Overview</h2>
+                    <small style="color: #6b7280;">Top 100 cryptocurrencies by market cap</small>
+                </div>
+                <div class="card-body">
+                    <!-- Market Overview Table -->
+                    <div style="overflow-x: auto;">
+                        <table id="topCoinsTable" class="portfolio-table" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Market Cap</th>
+                                    <th>24h %</th>
+                                    <th>7d %</th>
+                                    <th>Volume 24h</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loading state -->
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 2rem;">
+                                        <div class="loading-spinner">
+                                            <div class="spinner"></div>
+                                            <p>Loading market data...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Info Note -->
+                    <div style="margin-top: 1rem; padding: 1rem; background: #eff6ff; border-radius: 6px; font-size: 0.875rem;">
+                        <p style="margin: 0;">
+                            <strong>ℹ️ Data Source:</strong> 
+                            <span id="marketDataSource">Demo Mode</span> | 
+                            Last updated: <span id="marketDataTime">--</span>
+                        </p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.8125rem; color: #6b7280;">
+                            💡 Set <code>CMC_API_KEY</code> environment variable for real-time data from CoinMarketCap
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Market Overview Section -->
+        
+        <!-- Profile & Subscription Section -->
+        <div id="profileSection" class="tool-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>👤 Profile & Subscription</h2>
+                    <small style="color: #6b7280;">Manage your account settings</small>
+                </div>
+                <div class="card-body">
+                    <div class="profile-container">
+                        <!-- Profile Settings -->
+                        <div class="profile-section">
+                            <h3>Profile Settings</h3>
+                            <p style="margin-bottom: 1.5rem; color: #6b7280;">Update your account information</p>
+                            
+                            <form id="profileSettingsForm" class="profile-form">
+                                <div class="form-group">
+                                    <label for="profileUsername">Username</label>
+                                    <input type="text" id="profileUsername" class="form-input" 
+                                           value="{{ user.username }}" required>
+                                    <small>Your display name</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="profileEmail">Email</label>
+                                    <input type="email" id="profileEmail" class="form-input" 
+                                           value="{{ user.email if user.email else '' }}" placeholder="your.email@example.com">
+                                    <small>Used for notifications and account recovery</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="profilePassword">New Password</label>
+                                    <input type="password" id="profilePassword" class="form-input" 
+                                           placeholder="Leave blank to keep current password">
+                                    <small>Minimum 8 characters</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="profilePasswordConfirm">Confirm New Password</label>
+                                    <input type="password" id="profilePasswordConfirm" class="form-input" 
+                                           placeholder="Confirm your new password">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    💾 Update Profile
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <!-- Subscription Section -->
+                        <div class="profile-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e5e7eb;">
+                            <h3>Premium Subscription</h3>
+                            <p style="margin-bottom: 1.5rem; color: #6b7280;">Unlock advanced features</p>
+                            
+                            <div class="subscription-card">
+                                <div class="subscription-header">
+                                    <h4>Premium Plan</h4>
+                                    <div class="subscription-price">
+                                        <span class="price-amount">$100</span>
+                                        <span class="price-period">/month</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="subscription-features">
+                                    <h5>Included Features:</h5>
+                                    <ul class="feature-list">
+                                        <li>✅ Unlimited Grid Bots</li>
+                                        <li>✅ Unlimited DCA Bots</li>
+                                        <li>✅ Advanced AI Predictions</li>
+                                        <li>✅ Portfolio Analytics</li>
+                                        <li>✅ Fear & Greed Index</li>
+                                        <li>✅ Real-time Market Data</li>
+                                        <li>✅ Priority Support</li>
+                                        <li>✅ API Access</li>
+                                    </ul>
+                                </div>
+                                
+                                <button id="subscribeBtn" class="btn btn-primary btn-block" style="margin-top: 1.5rem;">
+                                    💳 Subscribe for $100/month
+                                </button>
+                                
+                                <p style="margin-top: 1rem; text-align: center; font-size: 0.875rem; color: #6b7280;">
+                                    <em>* Subscription feature coming soon. Payment integration will be added in a future update.</em>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Profile & Subscription Section -->
+    </div>
+    <!-- End Tool Sections Container -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- TradingView Widget Script -->
+<!-- Official TradingView lightweight charts library -->
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
+<!-- TradingView Chart Initialization -->
+<script type="text/javascript">
+// Global variable to hold the TradingView widget instance
+var tradingViewWidget;
+
+// Get initial symbol from backend (passed via template)
+// This ensures the chart shows user's last selected symbol
+var currentSymbol = 'BINANCE:{{ active_symbol }}';
+var currentBackendSymbol = '{{ active_symbol }}';
+
+/**
+ * Initialize TradingView Chart Widget
+ * This creates a real-time cryptocurrency chart using TradingView's API
+ */
+function initTradingViewChart() {
+    // Create new TradingView widget
+    tradingViewWidget = new TradingView.widget({
+        // Width and height
+        "width": "100%",
+        "height": 400,
+        
+        // Chart symbol (exchange:symbol format)
+        "symbol": currentSymbol,
+        
+        // Time interval (60 = 1 hour, 15 = 15 minutes, D = daily)
+        "interval": "60",
+        
+        // Timezone
+        "timezone": "Etc/UTC",
+        
+        // Theme: "light" or "dark"
+        "theme": "light",
+        
+        // Chart style: "0" = bars, "1" = candles, "2" = line, "3" = area
+        "style": "1",
+        
+        // Locale
+        "locale": "en",
+        
+        // Toolbar background color
+        "toolbar_bg": "#f1f3f6",
+        
+        // Enable grid lines
+        "enable_publishing": false,
+        "allow_symbol_change": false,
+        
+        // Container ID (where to render the chart)
+        "container_id": "tradingview_widget_container",
+        
+        // Show studies (technical indicators)
+        "studies": [
+            "MASimple@tv-basicstudies"  // Moving Average
+        ],
+        
+        // Hide side toolbar
+        "hide_side_toolbar": false,
+        
+        // Show top toolbar
+        "hide_top_toolbar": false,
+        
+        // Save chart settings
+        "save_image": false,
+        
+        // Additional features
+        "show_popup_button": false,
+        "popup_width": "1000",
+        "popup_height": "650"
+    });
+}
+
+/**
+ * Handle symbol change when user selects different cryptocurrency
+ * This function is called when user changes the dropdown selector
+ * 
+ * What it does:
+ * 1. Gets the newly selected symbol
+ * 2. Updates TradingView chart to show new symbol
+ * 3. Sends symbol to backend to save in session
+ * 4. Shows success notification
+ */
+async function onSymbolChange() {
+    const select = document.getElementById('symbolSelector');
+    const newSymbol = select.value;  // e.g., "BTCUSDT"
+    
+    console.log('Symbol changed to:', newSymbol);
+    
+    // Format for TradingView (needs "BINANCE:" prefix)
+    const tradingViewSymbol = 'BINANCE:' + newSymbol;
+    
+    if (tradingViewSymbol !== currentSymbol) {
+        currentSymbol = tradingViewSymbol;
+        currentBackendSymbol = newSymbol;
+        
+        // Step 1: Update TradingView chart
+        // Remove old widget
+        document.getElementById('tradingview_widget_container').innerHTML = '';
+        
+        // Create new widget with new symbol
+        initTradingViewChart();
+        
+        // Step 2: Reload indicators for new symbol
+        loadIndicators();
+        
+        // Step 3: Send symbol to backend to save in session
+        try {
+            const response = await fetch('/api/set_symbol', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    symbol: newSymbol
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'ok') {
+                console.log('✅ Symbol saved to backend:', data.symbol);
+                showNotification(`📊 Chart updated to ${newSymbol}`, 'success');
+            } else {
+                console.error('Failed to save symbol:', data.error);
+            }
+            
+        } catch (error) {
+            console.error('Error saving symbol:', error);
+        }
+    }
+}
+
+// Initialize chart when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a moment for DOM to be fully ready
+    setTimeout(function() {
+        initTradingViewChart();
+    }, 500);
+});
+</script>
+
+<!-- Dashboard-specific JavaScript -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+<!-- Market Overview with Live Prices -->
+<script src="{{ url_for('static', filename='js/market_overview.js') }}"></script>
+
+<!-- TASK 49: Help Box Styling -->
+<style>
+/* Help boxes for DCA and Grid bots */
+.help-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 1.5rem;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.help-box:hover {
+    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    transform: translateY(-2px);
+}
+
+.help-box summary {
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    user-select: none;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.help-box summary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.help-box summary::-webkit-details-marker {
+    display: none;
+}
+
+.help-box[open] summary {
+    margin-bottom: 1rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 1rem;
+}
+
+.help-content {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.help-content h4 {
+    color: #fff;
+    margin: 1.5rem 0 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.help-content h4:first-child {
+    margin-top: 0;
+}
+
+.help-content p {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+    opacity: 0.95;
+}
+
+.help-content ul {
+    margin: 0.5rem 0 0.5rem 1.5rem;
+    line-height: 1.8;
+}
+
+.help-content li {
+    margin: 0.5rem 0;
+    opacity: 0.95;
+}
+
+.help-content ul ul {
+    margin-left: 1rem;
+    margin-top: 0.25rem;
+}
+
+.help-content strong {
+    color: #fff;
+    font-weight: 600;
+}
+
+.field-help {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 18px;
+    font-size: 0.75rem;
+    cursor: help;
+    margin-left: 0.25rem;
+    transition: all 0.2s;
+}
+
+.field-help:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Responsive design for help boxes */
+@media (max-width: 768px) {
+    .help-box {
+        margin: 1rem;
+        padding: 1rem;
+    }
+    
+    .help-box summary {
+        font-size: 1rem;
+    }
+    
+    .help-content {
+        font-size: 0.9rem;
+    }
+}
+</style>
+
+{% endblock %}
+

@@ -1,0 +1,890 @@
+{% extends "base.html" %}
+
+{% block title %}Spot DCA - AI Trading Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="max-width: 100%; padding: 0;">
+    <!-- Top Navigation Bar -->
+    <div style="background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem;">
+        <a href="{{ url_for('trade') }}" style="text-decoration: none; color: #64748b; font-size: 1.5rem;">←</a>
+        <h1 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #1e293b;">🤖 Spot DCA</h1>
+        <div style="flex: 1;"></div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <span style="font-size: 0.875rem; color: #64748b;">Balance:</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #1e293b;">${{ "%.2f"|format(user.balance) }} USDT 💎</span>
+        </div>
+    </div>
+    
+    <!-- Main Layout: Chart + Settings -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; height: calc(100vh - 140px);">
+        <!-- Left: Chart with Order Lines -->
+        <div style="border-right: 1px solid #e2e8f0; background: #f8fafc; position: relative; padding: 0 1rem;">
+            <!-- How to Use Section (Collapsible) -->
+            <div style="margin: 1rem 0 1.5rem 0;">
+                <button onclick="toggleHowToUse()" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; cursor: pointer; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">💡</span>
+                        <span style="font-size: 1.1rem; font-weight: 700;">How to Use Spot DCA</span>
+                    </div>
+                    <span id="howToUseIcon" style="font-size: 1.2rem; transition: transform 0.3s;">▼</span>
+                </button>
+                
+                <div id="howToUseContent" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 0 0 12px 12px; margin-top: -8px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                        <!-- Step 1 -->
+                        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">1️⃣</div>
+                            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600;">Set Price Strategy</h4>
+                            <p style="margin: 0; font-size: 0.8rem; line-height: 1.5; opacity: 0.95;">
+                                <strong>Price Deviation:</strong> % gap between DCA orders (e.g., 1% = orders at -1%, -2%, -3%)<br>
+                                <strong>Take Profit:</strong> % profit target above base order
+                            </p>
+                        </div>
+                        
+                        <!-- Step 2 -->
+                        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">2️⃣</div>
+                            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600;">Configure Investment</h4>
+                            <p style="margin: 0; font-size: 0.8rem; line-height: 1.5; opacity: 0.95;">
+                                <strong>Base Order:</strong> Initial buy amount (USDT)<br>
+                                <strong>DCA Order Size:</strong> Each follow-up buy (USDT)<br>
+                                <strong>Max Orders:</strong> Maximum DCA orders (1-50)
+                            </p>
+                        </div>
+                        
+                        <!-- Step 3 -->
+                        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">3️⃣</div>
+                            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600;">Optional: Advanced</h4>
+                            <p style="margin: 0; font-size: 0.8rem; line-height: 1.5; opacity: 0.95;">
+                                <strong>Trigger Price:</strong> Start bot at specific price<br>
+                                <strong>Multipliers:</strong> Scale deviation & order size<br>
+                                <strong>Stop Loss:</strong> Auto-exit at loss %
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Example -->
+                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.3);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.2rem;">📊</span>
+                            <strong style="font-size: 0.9rem;">Example: BTC at $96,000</strong>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; font-size: 0.75rem;">
+                            <div>
+                                <div style="opacity: 0.9; margin-bottom: 0.25rem;">Base Order:</div>
+                                <div style="font-weight: 700;">$50 at $96,000</div>
+                            </div>
+                            <div>
+                                <div style="opacity: 0.9; margin-bottom: 0.25rem;">DCA #1 (1%):</div>
+                                <div style="font-weight: 700;">$25 at $95,040</div>
+                            </div>
+                            <div>
+                                <div style="opacity: 0.9; margin-bottom: 0.25rem;">DCA #2 (2%):</div>
+                                <div style="font-weight: 700;">$25 at $94,080</div>
+                            </div>
+                            <div>
+                                <div style="opacity: 0.9; margin-bottom: 0.25rem;">Take Profit (1.5%):</div>
+                                <div style="font-weight: 700; color: #10b981;">Sell at $97,440</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tips -->
+                    <div style="padding: 0.75rem; background: rgba(16, 185, 129, 0.2); border-radius: 6px; border-left: 4px solid #10b981;">
+                        <div style="display: flex; gap: 1rem; font-size: 0.75rem; line-height: 1.6;">
+                            <div style="flex: 1;">
+                                <strong>💎 Tip:</strong> Start with 1-2% price deviation for volatile markets, 3-5% for stable coins
+                            </div>
+                            <div style="flex: 1;">
+                                <strong>⚠️ Important:</strong> Full investment = Base Order + (DCA Order × Max Orders). Check your available balance!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chart Header -->
+            <div style="padding: 1rem; background: white; border-bottom: 1px solid #e2e8f0;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <h3 style="margin: 0; font-size: 1rem; font-weight: 600; color: #1e293b;">📊 DCA Order Visualization</h3>
+                    <select id="chartTimeframe" style="padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                        <option value="1h">1H</option>
+                        <option value="4h" selected>4H</option>
+                        <option value="1d">1D</option>
+                        <option value="1w">1W</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- TradingView Chart -->
+            <div style="position: relative; width: 100%; height: calc(100% - 140px); margin-bottom: 1.5rem;">
+                <div id="dcaTradingViewChart" style="width: 100%; height: 100%;">
+                    <!-- TradingView widget will be inserted here -->
+                </div>
+            </div>
+            
+            <!-- Chart Legend -->
+            <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 1.5rem; background: rgba(255,255,255,0.95); padding: 0.75rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 0.75rem; color: #64748b; z-index: 10;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 16px; height: 3px; background: #10b981;"></div>
+                    <span>Base Order</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 16px; height: 3px; background: #3b82f6;"></div>
+                    <span>DCA Orders</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 16px; height: 3px; background: #f59e0b;"></div>
+                    <span>Take Profit</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right: Settings Panel -->
+        <div style="background: white; overflow-y: auto; padding: 1.5rem;">
+            <!-- Trading Pair -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Trading Pair</label>
+                <select id="dcaSymbol" class="form-input" onchange="handleSymbolChange()" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem;">
+                    <option value="BTCUSDT" {% if active_symbol == 'BTCUSDT' %}selected{% endif %}>BTC/USDT</option>
+                    <option value="ETHUSDT" {% if active_symbol == 'ETHUSDT' %}selected{% endif %}>ETH/USDT</option>
+                    <option value="BNBUSDT" {% if active_symbol == 'BNBUSDT' %}selected{% endif %}>BNB/USDT</option>
+                    <option value="SOLUSDT" {% if active_symbol == 'SOLUSDT' %}selected{% endif %}>SOL/USDT</option>
+                    <option value="ADAUSDT" {% if active_symbol == 'ADAUSDT' %}selected{% endif %}>ADA/USDT</option>
+                    <option value="XRPUSDT">XRP/USDT</option>
+                    <option value="DOTUSDT">DOT/USDT</option>
+                    <option value="DOGEUSDT">DOGE/USDT</option>
+                    <option value="MATICUSDT">MATIC/USDT</option>
+                    <option value="LINKUSDT">LINK/USDT</option>
+                    <option value="CUSTOM">🔧 Custom Symbol...</option>
+                </select>
+                <input type="text" id="customSymbolInput" placeholder="Enter symbol (e.g., AVAXUSDT)" style="display: none; width: 100%; padding: 0.75rem; border: 1px solid #3b82f6; border-radius: 8px; font-size: 0.875rem; margin-top: 0.5rem;">
+                <div id="currentDcaPrice" style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">
+                    Current: <span style="font-weight: 600; color: #0891b2;">$0</span>
+                </div>
+            </div>
+            
+            <!-- AI Decision Mode Toggle -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">🤖</span>
+                        <div>
+                            <div style="font-size: 0.9rem; font-weight: 700; color: white;">AI Decision Mode</div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-top: 0.25rem;">Let AI control bot parameters</div>
+                        </div>
+                    </div>
+                    <label style="position: relative; display: inline-block; width: 56px; height: 28px; margin: 0;">
+                        <input type="checkbox" id="aiDecisionMode" onchange="toggleAIMode()" style="opacity: 0; width: 0; height: 0;">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.3); transition: 0.4s; border-radius: 28px;"></span>
+                        <span style="position: absolute; content: ''; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: 0.4s; border-radius: 50%;"></span>
+                    </label>
+                </div>
+                <div id="aiModeInfo" style="display: none; font-size: 0.75rem; color: rgba(255,255,255,0.9); line-height: 1.5; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                    ✨ <strong>AI Mode Active:</strong> The AI will analyze market conditions, technical indicators, and predictions to automatically configure optimal DCA parameters for maximum profit potential.
+                </div>
+            </div>
+            
+            <!-- Action Buttons (Buy/Sell) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <button type="button" id="buyBtn" class="btn btn-success active" onclick="selectDcaSide('buy')" style="padding: 1rem; font-size: 0.875rem; font-weight: 700; border-radius: 8px; background: #10b981; color: white; border: none;">
+                    Buy
+                </button>
+                <button type="button" id="sellBtn" class="btn" onclick="selectDcaSide('sell')" style="padding: 1rem; font-size: 0.875rem; font-weight: 700; background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer;">
+                    Sell
+                </button>
+            </div>
+            
+            <!-- Create Bot Button -->
+            <button type="button" id="createBotBtn" onclick="createDcaBot()" style="width: 100%; padding: 1.25rem; font-size: 1rem; font-weight: 700; border-radius: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; cursor: pointer; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                ✨ Create DCA Bot
+            </button>
+            
+            <!-- Price Settings -->
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-size: 0.875rem; font-weight: 700; color: #1e293b; margin: 0 0 1rem 0; text-transform: uppercase; letter-spacing: 0.5px;">1. Price Settings</h4>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Price Deviation</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="number" id="priceDeviation" class="form-input" placeholder="1" value="1" step="0.1" min="0.1" max="50" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                        <span style="font-size: 0.875rem; color: #64748b; font-weight: 700; min-width: 20px;">%</span>
+                        <button type="button" onclick="togglePriceDeviationFix()" style="padding: 0.75rem 1rem; border: 1px solid #e2e8f0; background: white; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; color: #64748b;">Fix</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Take Profit</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="number" id="takeProfit" class="form-input" placeholder="1.5" value="1.5" step="0.1" min="0.1" max="100" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                        <span style="font-size: 0.875rem; color: #64748b; font-weight: 700; min-width: 20px;">%</span>
+                        <button type="button" onclick="toggleTakeProfitFix()" style="padding: 0.75rem 1rem; border: 1px solid #e2e8f0; background: white; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; color: #64748b;">Fix</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Investment Settings -->
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-size: 0.875rem; font-weight: 700; color: #1e293b; margin: 0 0 1rem 0; text-transform: uppercase; letter-spacing: 0.5px;">2. Investment</h4>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Base Order Size</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="number" id="baseOrderSize" class="form-input" placeholder="50" value="50" step="1" min="10" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                        <span style="font-size: 0.875rem; color: #64748b; font-weight: 700; min-width: 50px;">USDT</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">DCA Order Size</label>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="number" id="dcaOrderSize" class="form-input" placeholder="25" value="25" step="1" min="10" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                        <span style="font-size: 0.875rem; color: #64748b; font-weight: 700; min-width: 50px;">USDT</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Max DCA Orders</label>
+                    <input type="number" id="maxDcaOrders" class="form-input" placeholder="8" value="8" step="1" min="1" max="50" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                </div>
+                
+                <!-- Investment Summary -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1rem; border-radius: 8px; font-size: 0.75rem; color: white;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="opacity: 0.9;">Available:</span>
+                        <span style="font-weight: 700;">{{ "%.2f"|format(user.balance) }} USDT 💎</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="opacity: 0.9;">Full Investment:</span>
+                        <span style="font-weight: 700;" id="fullInvestment">~250 USDT</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced Settings (Collapsible) -->
+            <div style="margin-bottom: 1.5rem;">
+                <button type="button" onclick="toggleAdvancedDca()" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 600; color: #1e293b;">
+                    <span>Advanced (Optional) ⓘ</span>
+                    <span id="advancedToggleIcon">▼</span>
+                </button>
+                
+                <div id="advancedDcaSettings" style="display: none; margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Trigger Price</label>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="number" id="triggerPrice" class="form-input" placeholder="USDT" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                            <span style="font-size: 0.875rem; color: #64748b;">USDT</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Price Deviation Multiplier</label>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="number" id="priceDeviationMultiplier" class="form-input" placeholder="0.1" value="0.1" step="0.1" min="0.1" max="10" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                            <span style="font-size: 0.875rem; color: #64748b;">~ 10</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">DCA Order Size Multiplier</label>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="number" id="dcaOrderSizeMultiplier" class="form-input" placeholder="0.1" value="0.1" step="0.1" min="0.1" max="10" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                            <span style="font-size: 0.875rem; color: #64748b;">~ 10</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Cooldown Between Rounds</label>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="number" id="cooldownRounds" class="form-input" placeholder="60" value="60" step="1" min="0" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                            <span style="font-size: 0.875rem; color: #64748b;">Sec</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Price Range -->
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Price Range</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <input type="number" id="priceRangeLower" class="form-input" placeholder="Lower" style="padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                            <input type="number" id="priceRangeUpper" class="form-input" placeholder="Upper" style="padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                        </div>
+                    </div>
+                    
+                    <!-- Stop Loss -->
+                    <div>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">
+                            <input type="checkbox" id="enableStopLoss">
+                            Stop Loss
+                        </label>
+                        <div id="stopLossInput" style="display: none;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <input type="number" id="stopLoss" class="form-input" placeholder="5" step="0.1" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;">
+                                <span style="font-size: 0.875rem; color: #64748b;">%</span>
+                            </div>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; color: #64748b;">
+                                <input type="checkbox" id="endBotOnStopLoss">
+                                End the bot once stop loss is triggered
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Tabs: Running / History / PNL Analysis -->
+    <div style="background: white; border-top: 2px solid #e2e8f0; margin-top: 2rem;">
+        <div style="display: flex; border-bottom: 1px solid #e2e8f0; padding: 0 2rem;">
+            <button class="dca-bottom-tab active" onclick="switchDcaBottomTab('running')" id="runningTab" style="padding: 1rem 1.5rem; border: none; background: none; font-weight: 600; color: #3b82f6; border-bottom: 2px solid #3b82f6; cursor: pointer; font-size: 0.875rem;">
+                Running
+            </button>
+            <button class="dca-bottom-tab" onclick="switchDcaBottomTab('history')" id="historyTab" style="padding: 1rem 1.5rem; border: none; background: none; font-weight: 600; color: #64748b; cursor: pointer; font-size: 0.875rem;">
+                History
+            </button>
+            <button class="dca-bottom-tab" onclick="switchDcaBottomTab('pnl')" id="pnlTab" style="padding: 1rem 1.5rem; border: none; background: none; font-weight: 600; color: #64748b; cursor: pointer; font-size: 0.875rem;">
+                PNL Analysis
+            </button>
+            <div style="flex: 1;"></div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 1rem 0;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #64748b; cursor: pointer;">
+                    <input type="checkbox" id="hideOtherPairs">
+                    Hide Other Pairs
+                </label>
+                <span style="font-size: 0.75rem; color: #94a3b8;">Data refreshes in 05</span>
+            </div>
+        </div>
+        
+        <!-- Running Orders Content -->
+        <div id="runningContent" class="dca-bottom-content" style="padding: 3rem; text-align: center; color: #64748b;">
+            <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">🔍</div>
+            <p style="margin: 0; font-size: 1rem; font-weight: 600; color: #1e293b;">You have no running orders.</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">Configure your DCA bot settings and click "Buy BTC" to start</p>
+        </div>
+        
+        <!-- History Content -->
+        <div id="historyContent" class="dca-bottom-content" style="padding: 3rem; text-align: center; color: #64748b; display: none;">
+            <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">📜</div>
+            <p style="margin: 0; font-size: 1rem; font-weight: 600; color: #1e293b;">No order history yet.</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">Your completed DCA orders will appear here</p>
+        </div>
+        
+        <!-- PNL Analysis Content -->
+        <div id="pnlContent" class="dca-bottom-content" style="padding: 3rem; text-align: center; color: #64748b; display: none;">
+            <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">📊</div>
+            <p style="margin: 0; font-size: 1rem; font-weight: 600; color: #1e293b;">No PNL data available.</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">Your profit & loss analysis will appear here once you have completed orders</p>
+        </div>
+    </div>
+</div>
+
+<!-- TradingView Widget Script -->
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
+<!-- DCA Bot JavaScript -->
+<script>
+let currentDcaPrice = 0;
+let tvWidget = null;
+let priceUpdateInterval = null;
+let aiModeEnabled = false;
+let dcaSide = 'buy';  // Default to buy
+
+// Initialize TradingView Widget for DCA
+function initDcaTradingView(symbol) {
+    if (tvWidget) {
+        try {
+            tvWidget.remove();
+        } catch (e) {
+            console.log('Could not remove widget:', e);
+        }
+    }
+    
+    console.log('🎨 Initializing TradingView chart for', symbol);
+    
+    try {
+        tvWidget = new TradingView.widget({
+            "autosize": true,
+            "symbol": "BINANCE:" + symbol,
+            "interval": "240",
+            "timezone": "Etc/UTC",
+            "theme": "light",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "allow_symbol_change": false,
+            "container_id": "dcaTradingViewChart",
+            "hide_top_toolbar": false,
+            "hide_legend": false,
+            "save_image": false,
+            "studies": []
+        });
+        
+        console.log('✅ TradingView widget created');
+        
+        console.log('✅ Chart loading complete');
+        
+    } catch (error) {
+        console.error('❌ Error creating TradingView widget:', error);
+    }
+}
+
+
+// Toggle "How to Use" section
+function toggleHowToUse() {
+    const content = document.getElementById('howToUseContent');
+    const icon = document.getElementById('howToUseIcon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▲';
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        content.style.display = 'none';
+        icon.textContent = '▼';
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+// Toggle advanced DCA settings
+function toggleAdvancedDca() {
+    const settings = document.getElementById('advancedDcaSettings');
+    const icon = document.getElementById('advancedToggleIcon');
+    if (settings.style.display === 'none') {
+        settings.style.display = 'block';
+        icon.textContent = '▲';
+    } else {
+        settings.style.display = 'none';
+        icon.textContent = '▼';
+    }
+}
+
+// Toggle stop loss input
+function toggleStopLoss() {
+    const checkbox = document.getElementById('enableStopLoss');
+    const input = document.getElementById('stopLossInput');
+    input.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+// Toggle price deviation fix
+function togglePriceDeviationFix() {
+    alert('Price Deviation Fix feature coming soon!');
+}
+
+// Toggle take profit fix
+function toggleTakeProfitFix() {
+    alert('Take Profit Fix feature coming soon!');
+}
+
+// Switch DCA bottom tabs
+function switchDcaBottomTab(tab) {
+    const tabs = ['running', 'history', 'pnl'];
+    tabs.forEach(t => {
+        const tabBtn = document.getElementById(t + 'Tab');
+        const content = document.getElementById(t + 'Content');
+        
+        if (t === tab) {
+            tabBtn.style.color = '#3b82f6';
+            tabBtn.style.borderBottom = '2px solid #3b82f6';
+            content.style.display = 'block';
+        } else {
+            tabBtn.style.color = '#64748b';
+            tabBtn.style.borderBottom = 'none';
+            content.style.display = 'none';
+        }
+    });
+}
+
+// Calculate full investment
+function calculateFullInvestment() {
+    const baseOrder = parseFloat(document.getElementById('baseOrderSize').value) || 50;
+    const dcaOrder = parseFloat(document.getElementById('dcaOrderSize').value) || 25;
+    const maxOrders = parseInt(document.getElementById('maxDcaOrders').value) || 8;
+    
+    const fullInvestment = baseOrder + (dcaOrder * maxOrders);
+    document.getElementById('fullInvestment').textContent = '~' + fullInvestment.toFixed(0) + ' USDT';
+}
+
+
+// Handle symbol change (show custom input if Custom selected)
+function handleSymbolChange() {
+    const symbolSelect = document.getElementById('dcaSymbol');
+    const customInput = document.getElementById('customSymbolInput');
+    
+    if (symbolSelect.value === 'CUSTOM') {
+        customInput.style.display = 'block';
+        customInput.focus();
+    } else {
+        customInput.style.display = 'none';
+        // Update chart and price
+        initDcaTradingView(symbolSelect.value);
+        fetchDcaPrice();
+    }
+}
+
+// Get the actual symbol (from dropdown or custom input)
+function getActualSymbol() {
+    const symbolSelect = document.getElementById('dcaSymbol');
+    const customInput = document.getElementById('customSymbolInput');
+    
+    if (symbolSelect.value === 'CUSTOM') {
+        return customInput.value.trim().toUpperCase();
+    }
+    return symbolSelect.value;
+}
+
+// Select DCA side (buy/sell)
+function selectDcaSide(side) {
+    dcaSide = side;
+    const buyBtn = document.getElementById('buyBtn');
+    const sellBtn = document.getElementById('sellBtn');
+    
+    if (side === 'buy') {
+        // Activate buy button
+        buyBtn.style.background = '#10b981';
+        buyBtn.style.color = 'white';
+        buyBtn.style.border = 'none';
+        buyBtn.classList.add('active');
+        
+        // Deactivate sell button
+        sellBtn.style.background = '#f8fafc';
+        sellBtn.style.color = '#94a3b8';
+        sellBtn.style.border = '1px solid #e2e8f0';
+        sellBtn.classList.remove('active');
+    } else {
+        // Activate sell button
+        sellBtn.style.background = '#ef4444';
+        sellBtn.style.color = 'white';
+        sellBtn.style.border = 'none';
+        sellBtn.classList.add('active');
+        
+        // Deactivate buy button
+        buyBtn.style.background = '#f8fafc';
+        buyBtn.style.color = '#94a3b8';
+        buyBtn.style.border = '1px solid #e2e8f0';
+        buyBtn.classList.remove('active');
+    }
+}
+
+// Toggle AI Decision Mode
+function toggleAIMode() {
+    const checkbox = document.getElementById('aiDecisionMode');
+    const infoDiv = document.getElementById('aiModeInfo');
+    const toggle = checkbox.parentElement.querySelectorAll('span')[0];
+    const slider = checkbox.parentElement.querySelectorAll('span')[1];
+    
+    aiModeEnabled = checkbox.checked;
+    
+    if (aiModeEnabled) {
+        // Show info
+        infoDiv.style.display = 'block';
+        
+        // Update toggle appearance
+        toggle.style.backgroundColor = 'rgba(16, 185, 129, 0.8)';
+        slider.style.transform = 'translateX(28px)';
+        
+        // Fetch AI recommendations
+        fetchAIRecommendations();
+    } else {
+        infoDiv.style.display = 'none';
+        toggle.style.backgroundColor = 'rgba(255,255,255,0.3)';
+        slider.style.transform = 'translateX(0)';
+    }
+}
+
+// Fetch AI-recommended parameters
+async function fetchAIRecommendations() {
+    try {
+        const symbol = getActualSymbol();  // Use actual symbol (handles custom input)
+        
+        // Validate symbol
+        if (!symbol || symbol === '' || symbol === 'CUSTOM') {
+            document.getElementById('aiModeInfo').innerHTML = '⚠️ <strong>Please select or enter a valid symbol first!</strong>';
+            return;
+        }
+        
+        // Show loading state
+        const infoDiv = document.getElementById('aiModeInfo');
+        infoDiv.innerHTML = '🤖 <strong>AI is analyzing...</strong> Fetching market data, technical indicators, and predictions...';
+        
+        // Fetch AI prediction
+        const response = await fetch('/api/advanced_predict', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                symbol: symbol,
+                mode: 'ai',
+                timeframe: '4h'
+            })
+        });
+        
+        const data = await response.json();
+        
+        console.log('AI Response:', data);  // Debug log
+        
+        if (data.success && data.result) {
+            const prediction = data.result;
+            
+            console.log('Prediction:', prediction);  // Debug log
+            console.log('Current DCA Price:', currentDcaPrice);  // Debug log
+            
+            // Validate required fields
+            if (!prediction.signal || !prediction.confidence) {
+                throw new Error('Invalid prediction data: missing signal or confidence');
+            }
+            
+            // Calculate AI-recommended parameters based on prediction
+            const aiParams = calculateAIParameters(prediction, currentDcaPrice);
+            
+            console.log('AI Params:', aiParams);  // Debug log
+            
+            // Auto-fill form with AI recommendations
+            document.getElementById('priceDeviation').value = aiParams.priceDeviation;
+            document.getElementById('takeProfit').value = aiParams.takeProfit;
+            document.getElementById('baseOrderSize').value = aiParams.baseOrder;
+            document.getElementById('dcaOrderSize').value = aiParams.dcaOrder;
+            document.getElementById('maxDcaOrders').value = aiParams.maxOrders;
+            
+            // Update investment display
+            updateInvestmentDisplay();
+            
+            // Update info
+            const targetPrice = prediction.target_price || currentDcaPrice;
+            infoDiv.innerHTML = `
+                ✨ <strong>AI Recommendations Applied!</strong><br>
+                Signal: <strong>${prediction.signal}</strong> | 
+                Confidence: <strong>${Math.round(prediction.confidence)}%</strong> | 
+                Target: <strong>$${Number(targetPrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong><br>
+                <span style="font-size: 0.7rem; opacity: 0.9;">AI has configured optimal parameters based on market analysis.</span>
+            `;
+        } else {
+            console.error('AI prediction failed:', data);
+            infoDiv.innerHTML = '⚠️ <strong>AI analysis failed.</strong> Please configure parameters manually or try again.';
+        }
+    } catch (error) {
+        console.error('Error fetching AI recommendations:', error);
+        document.getElementById('aiModeInfo').innerHTML = '⚠️ <strong>Error connecting to AI.</strong> Please try again or configure manually.';
+    }
+}
+
+// Calculate AI-recommended parameters based on prediction
+function calculateAIParameters(prediction, currentPrice) {
+    const signal = prediction.signal ? prediction.signal.toUpperCase() : 'HOLD';
+    const confidence = prediction.confidence || 50;
+    const targetPrice = prediction.target_price || currentPrice;
+    
+    // Ensure currentPrice is valid
+    if (!currentPrice || currentPrice === 0) {
+        currentPrice = targetPrice;
+    }
+    
+    // Base parameters on signal confidence
+    let priceDeviation, takeProfit, baseOrder, dcaOrder, maxOrders;
+    
+    if (signal === 'BUY' || signal === 'STRONG_BUY') {
+        // Bullish: More aggressive DCA
+        priceDeviation = confidence > 70 ? 0.5 : 1.0;  // Tighter deviation for high confidence
+        takeProfit = targetPrice && currentPrice ? Math.abs(((targetPrice - currentPrice) / currentPrice) * 100).toFixed(2) : 2.0;
+        baseOrder = confidence > 70 ? 100 : 50;
+        dcaOrder = confidence > 70 ? 50 : 25;
+        maxOrders = confidence > 70 ? 5 : 8;
+    } else if (signal === 'SELL' || signal === 'STRONG_SELL') {
+        // Bearish: Conservative, wider deviation
+        priceDeviation = 2.0;
+        takeProfit = 1.5;
+        baseOrder = 30;
+        dcaOrder = 20;
+        maxOrders = 10;
+    } else {
+        // Neutral/HOLD: Balanced approach
+        priceDeviation = 1.5;
+        takeProfit = 2.0;
+        baseOrder = 50;
+        dcaOrder = 30;
+        maxOrders = 8;
+    }
+    
+    return {
+        priceDeviation: parseFloat(priceDeviation),
+        takeProfit: parseFloat(takeProfit),
+        baseOrder: parseFloat(baseOrder),
+        dcaOrder: parseFloat(dcaOrder),
+        maxOrders: parseInt(maxOrders)
+    };
+}
+
+// Create DCA bot
+async function createDcaBot() {
+    const symbol = getActualSymbol();  // Get symbol from dropdown or custom input
+    const baseOrder = parseFloat(document.getElementById('baseOrderSize').value);
+    const dcaOrder = parseFloat(document.getElementById('dcaOrderSize').value);
+    const maxOrders = parseInt(document.getElementById('maxDcaOrders').value);
+    const priceDeviation = parseFloat(document.getElementById('priceDeviation').value);
+    const takeProfit = parseFloat(document.getElementById('takeProfit').value);
+    
+    // Validate symbol
+    if (!symbol || symbol === '' || symbol === 'CUSTOM') {
+        alert('⚠️ Please enter a valid trading symbol!');
+        return;
+    }
+    
+    if (!baseOrder || !dcaOrder || !maxOrders || !priceDeviation || !takeProfit) {
+        alert('⚠️ Please fill in all required fields!');
+        return;
+    }
+    
+    const fullInvestment = baseOrder + (dcaOrder * maxOrders);
+    
+    // Confirm with user
+    const confirmed = confirm(
+        `🤖 Create DCA Bot?\n\n` +
+        `Symbol: ${symbol}\n` +
+        `Side: ${dcaSide.toUpperCase()}\n` +
+        `Base Order: $${baseOrder}\n` +
+        `DCA Order: $${dcaOrder}\n` +
+        `Max Orders: ${maxOrders}\n` +
+        `Price Deviation: ${priceDeviation}%\n` +
+        `Take Profit: ${takeProfit}%\n` +
+        `Full Investment: $${fullInvestment}\n` +
+        `AI Mode: ${aiModeEnabled ? 'YES' : 'NO'}\n\n` +
+        `⚠️ This will create a PAPER TRADING bot (no real money).\n\n` +
+        `Do you want to proceed?`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+        // Show loading
+        const createBtn = document.getElementById('createBotBtn');
+        const originalText = createBtn.textContent;
+        createBtn.textContent = '⏳ Creating Bot...';
+        createBtn.disabled = true;
+        
+        // Create bot
+        const response = await fetch('/api/bot/dca/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                symbol: symbol,
+                side: dcaSide,
+                base_order: baseOrder,
+                dca_order: dcaOrder,
+                max_orders: maxOrders,
+                price_deviation: priceDeviation,
+                take_profit: takeProfit,
+                ai_mode: aiModeEnabled,
+                is_paper_trading: true
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Restore button
+        createBtn.textContent = originalText;
+        createBtn.disabled = false;
+        
+        if (data.success) {
+            alert(
+                `✅ DCA Bot Created Successfully!\n\n` +
+                `Bot ID: ${data.bot_id}\n` +
+                `Side: ${dcaSide.toUpperCase()}\n` +
+                `Orders Placed: ${data.orders_placed.length}\n` +
+                `Total Investment: $${data.total_investment}\n` +
+                `Take Profit Price: $${data.take_profit_price.toFixed(2)}\n\n` +
+                `Your bot is now running! Check the "Running" tab below to see your orders.`
+            );
+            
+            // Reload page to show new bot
+            window.location.reload();
+        } else {
+            alert(`❌ Error Creating Bot:\n\n${data.error}`);
+        }
+        
+    } catch (error) {
+        console.error('Error creating DCA bot:', error);
+        alert(`❌ Error:\n\n${error.message}`);
+        
+        // Restore button
+        const createBtn = document.getElementById('createBotBtn');
+        createBtn.textContent = '✨ Create DCA Bot';
+        createBtn.disabled = false;
+    }
+}
+
+// Fetch current price for DCA bot
+async function fetchDcaPrice() {
+    const symbol = document.getElementById('dcaSymbol').value;
+    try {
+        const response = await fetch('/api/indicators/' + symbol);
+        const data = await response.json();
+        if (data.success && data.current_price) {
+            currentDcaPrice = data.current_price;
+            const priceSpan = document.querySelector('#currentDcaPrice span');
+            if (priceSpan) {
+                priceSpan.textContent = '$' + currentDcaPrice.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching DCA price:', error);
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize chart
+    const activeSymbol = document.getElementById('dcaSymbol').value;
+    initDcaTradingView(activeSymbol);
+    
+    // Fetch initial price
+    fetchDcaPrice();
+    
+    // Update chart and price when symbol changes
+    document.getElementById('dcaSymbol').addEventListener('change', function() {
+        initDcaTradingView(this.value);
+        fetchDcaPrice();
+    });
+    
+    // Add input listeners for real-time calculation
+    const dcaInputs = ['baseOrderSize', 'dcaOrderSize', 'maxDcaOrders', 'priceDeviation', 'takeProfit'];
+    dcaInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', function() {
+                calculateFullInvestment();
+            });
+        }
+    });
+    
+    // Initialize full investment calculation
+    calculateFullInvestment();
+    
+    // Initialize stop loss toggle listener
+    const stopLossCheckbox = document.getElementById('enableStopLoss');
+    if (stopLossCheckbox) {
+        stopLossCheckbox.addEventListener('change', toggleStopLoss);
+    }
+    
+    // Update timeframe
+    document.getElementById('chartTimeframe').addEventListener('change', function() {
+        const timeframeMap = {
+            '1h': '60',
+            '4h': '240',
+            '1d': 'D',
+            '1w': 'W'
+        };
+        if (tvWidget) {
+            tvWidget.chart().setResolution(timeframeMap[this.value]);
+        }
+    });
+    
+    // Refresh price every 30 seconds
+    setInterval(fetchDcaPrice, 30000);
+    
+    console.log('✅ DCA Bot page initialized');
+});
+</script>
+{% endblock %}
+

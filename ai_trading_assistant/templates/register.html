@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Register - AI Trading Assistant{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Create Account</h1>
+        <p class="auth-subtitle">Join us and start your paper trading journey!</p>
+        
+        <form method="POST" action="{{ url_for('register') }}" class="auth-form">
+            <!-- Username Field -->
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    placeholder="Enter your username"
+                    required
+                    minlength="3"
+                    maxlength="50"
+                    autocomplete="username"
+                >
+                <small>At least 3 characters</small>
+            </div>
+            
+            <!-- Email Field -->
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="Enter your email"
+                    required
+                    maxlength="100"
+                    autocomplete="email"
+                >
+            </div>
+            
+            <!-- Password Field -->
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Enter your password"
+                    required
+                    minlength="6"
+                    autocomplete="new-password"
+                >
+                <small>At least 6 characters</small>
+            </div>
+            
+            <!-- Confirm Password Field -->
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input 
+                    type="password" 
+                    id="confirm_password" 
+                    name="confirm_password" 
+                    placeholder="Confirm your password"
+                    required
+                    minlength="6"
+                    autocomplete="new-password"
+                >
+            </div>
+            
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary btn-block">
+                Create Account
+            </button>
+        </form>
+        
+        <!-- Link to Login -->
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Log in here</a></p>
+        </div>
+        
+        <!-- Info Box -->
+        <div class="info-box">
+            <h3>What you'll get:</h3>
+            <ul>
+                <li>💰 $10,000 virtual balance</li>
+                <li>📊 AI-powered price predictions</li>
+                <li>📈 Real-time price charts</li>
+                <li>💼 Portfolio tracking</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

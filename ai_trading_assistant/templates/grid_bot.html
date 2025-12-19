@@ -1,0 +1,769 @@
+{% extends "base.html" %}
+
+{% block title %}Spot Grid - AI Trading Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="max-width: 100%; padding: 0;">
+    <!-- Top Navigation Bar -->
+    <div style="background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem;">
+        <a href="{{ url_for('trade') }}" style="text-decoration: none; color: #64748b; font-size: 1.5rem;">←</a>
+        <h1 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #1e293b;">📊 Spot Grid</h1>
+        <div style="flex: 1;"></div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <span style="font-size: 0.875rem; color: #64748b;">Balance:</span>
+            <span style="font-size: 0.875rem; font-weight: 600; color: #1e293b;">${{ "%.2f"|format(user.balance) }} USDT 💎</span>
+        </div>
+    </div>
+    
+    <!-- Main Layout: Chart + Settings -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; height: calc(100vh - 140px);">
+        <!-- Left: Chart -->
+        <div style="border-right: 1px solid #e2e8f0; background: #f8fafc; position: relative; padding: 0 1rem;">
+            <!-- How to Use Section (Collapsible) -->
+            <div style="margin: 1rem 0 1.5rem 0;">
+                <button onclick="toggleHowToUse()" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; cursor: pointer; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">💡</span>
+                        <span style="font-size: 1.1rem; font-weight: 700;">How to Use Spot Grid</span>
+                    </div>
+                    <span id="howToUseIcon" style="font-size: 1.2rem; transition: transform 0.3s;">▼</span>
+                </button>
+                
+                <div id="howToUseContent" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 0 0 12px 12px; margin-top: -8px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                        <!-- Step 1 -->
+                        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">1️⃣</div>
+                            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600;">Set Price Range</h4>
+                            <p style="margin: 0; font-size: 0.8rem; line-height: 1.5; opacity: 0.95;">
+                                <strong>Lower Price:</strong> Bottom of trading range<br>
+                                <strong>Upper Price:</strong> Top of trading range<br>
+                                <strong>Tip:</strong> Use "Auto Fill" for ±20% range
+                            </p>
+                        </div>
+                        
+                        <!-- Step 2 -->
+                        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">2️⃣</div>
+                            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600;">Configure Grids</h4>
+                            <p style="margin: 0; font-size: 0.8rem; line-height: 1.5; opacity: 0.95;">
+                                <strong>Number of Grids:</strong> 2-170 grid levels<br>
+                                <strong>Arithmetic:</strong> Equal price gaps<br>
+                                <strong>Manual:</strong> Custom grid placement
+                            </p>
+                        </div>
+                        
+                        <!-- Step 3 -->
+                        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">3️⃣</div>
+                            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: 600;">Set Investment</h4>
+                            <p style="margin: 0; font-size: 0.8rem; line-height: 1.5; opacity: 0.95;">
+                                <strong>Investment:</strong> Total USDT amount<br>
+                                <strong>Minimum:</strong> 10 USDT<br>
+                                <strong>Distribution:</strong> Split across all grids
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Example -->
+                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.3);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.2rem;">📊</span>
+                            <strong style="font-size: 0.9rem;">Example: BTC between $94,000 - $116,000</strong>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; font-size: 0.75rem;">
+                            <div>
+                                <div style="opacity: 0.9; margin-bottom: 0.25rem;">Price Range:</div>
+                                <div style="font-weight: 700;">$22,000 spread</div>
+                            </div>
+                            <div>
+                                <div style="opacity: 0.9; margin-bottom: 0.25rem;">Grids:</div>
+                                <div style="font-weight: 700;">10 levels</div>
+                            </div>
+                            <div>
+                                <div style="opacity: 0.9; margin-bottom: 0.25rem;">Grid Step:</div>
+                                <div style="font-weight: 700;">$2,200 each</div>
+                            </div>
+                            <div>
+                                <div style="opacity: 0.9; margin-bottom: 0.25rem;">Profit/Grid:</div>
+                                <div style="font-weight: 700; color: #10b981;">~2.34%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tips -->
+                    <div style="padding: 0.75rem; background: rgba(16, 185, 129, 0.2); border-radius: 6px; border-left: 4px solid #10b981;">
+                        <div style="display: flex; gap: 1rem; font-size: 0.75rem; line-height: 1.6;">
+                            <div style="flex: 1;">
+                                <strong>💎 Tip:</strong> Grid bots work best in sideways/ranging markets. More grids = more trades but smaller profits per trade.
+                            </div>
+                            <div style="flex: 1;">
+                                <strong>⚠️ Important:</strong> Choose a price range where you expect the asset to trade. Grid bot profits from volatility within the range.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chart Section with Header -->
+            <div style="background: white; border-radius: 12px; height: calc(100% - 180px); padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1rem; font-weight: 600;">📊 Grid Order Visualization</span>
+                    </div>
+                    <select id="chartTimeframe" style="padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem; background: white; cursor: pointer;">
+                        <option value="1H">1H</option>
+                        <option value="4H" selected>4H</option>
+                        <option value="1D">1D</option>
+                        <option value="1W">1W</option>
+                    </select>
+                </div>
+                
+                <!-- TradingView Chart -->
+                <div id="gridTradingViewChart" style="width: 100%; height: calc(100% - 60px);">
+                    <!-- TradingView widget will be inserted here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right: Settings Panel -->
+        <div style="background: white; overflow-y: auto; padding: 1.5rem;">
+            <!-- Trading Pair -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Trading Pair</label>
+                <select id="gridSymbol" class="form-input" onchange="handleGridSymbolChange()" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; font-weight: 500;">
+                    <option value="BTCUSDT" {% if active_symbol == 'BTCUSDT' %}selected{% endif %}>BTC/USDT</option>
+                    <option value="ETHUSDT" {% if active_symbol == 'ETHUSDT' %}selected{% endif %}>ETH/USDT</option>
+                    <option value="BNBUSDT" {% if active_symbol == 'BNBUSDT' %}selected{% endif %}>BNB/USDT</option>
+                    <option value="SOLUSDT" {% if active_symbol == 'SOLUSDT' %}selected{% endif %}>SOL/USDT</option>
+                    <option value="ADAUSDT" {% if active_symbol == 'ADAUSDT' %}selected{% endif %}>ADA/USDT</option>
+                    <option value="XRPUSDT">XRP/USDT</option>
+                    <option value="DOTUSDT">DOT/USDT</option>
+                    <option value="DOGEUSDT">DOGE/USDT</option>
+                    <option value="MATICUSDT">MATIC/USDT</option>
+                    <option value="LINKUSDT">LINK/USDT</option>
+                    <option value="CUSTOM">🔧 Custom Symbol...</option>
+                </select>
+                <input type="text" id="customGridSymbolInput" placeholder="Enter symbol (e.g., AVAXUSDT)" style="display: none; width: 100%; padding: 0.75rem; border: 1px solid #3b82f6; border-radius: 8px; font-size: 0.875rem; margin-top: 0.5rem;">
+                <div id="currentGridPrice" style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">
+                    Current: <span style="font-weight: 600; color: #0891b2;">$0</span>
+                </div>
+            </div>
+
+            <!-- Buy/Sell Buttons -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <button type="button" onclick="setGridMode('buy')" id="buyGridBtn" class="btn btn-success" style="padding: 0.75rem; font-size: 0.875rem; font-weight: 700; border-radius: 8px; background: #10b981; color: white; border: none; cursor: pointer; transition: all 0.2s;">
+                    Buy BTC
+                </button>
+                <button type="button" onclick="setGridMode('sell')" id="sellGridBtn" class="btn" style="padding: 0.75rem; font-size: 0.875rem; font-weight: 700; border-radius: 8px; background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s;">
+                    Sell BTC
+                </button>
+            </div>
+            
+            <!-- AI Decision Mode Toggle -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">🤖</span>
+                        <div>
+                            <div style="font-size: 0.9rem; font-weight: 700; color: white;">AI Decision Mode</div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); margin-top: 0.25rem;">Let AI control grid parameters</div>
+                        </div>
+                    </div>
+                    <label style="position: relative; display: inline-block; width: 56px; height: 28px; margin: 0;">
+                        <input type="checkbox" id="aiDecisionModeGrid" onchange="toggleAIModeGrid()" style="opacity: 0; width: 0; height: 0;">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.3); transition: 0.4s; border-radius: 28px;"></span>
+                        <span style="position: absolute; content: ''; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: 0.4s; border-radius: 50%;"></span>
+                    </label>
+                </div>
+                <div id="aiModeInfoGrid" style="display: none; font-size: 0.75rem; color: rgba(255,255,255,0.9); line-height: 1.5; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                    ✨ <strong>AI Mode Active:</strong> The AI will analyze market conditions and optimize grid range, number of grids, and investment for maximum profit potential.
+                </div>
+            </div>
+            
+            <!-- Tab: Manual -->
+            <div style="border-bottom: 1px solid #e2e8f0; margin-bottom: 1.5rem;">
+                <button style="padding: 0.75rem 1rem; border: none; background: none; color: #3b82f6; border-bottom: 2px solid #3b82f6; font-weight: 600; cursor: pointer; font-size: 0.875rem;">
+                    Manual
+                </button>
+            </div>
+            
+            <!-- 1. Price Range -->
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b;">1. Price Range</label>
+                    <button type="button" onclick="autoFillPriceRange()" style="padding: 0.4rem 0.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; color: #64748b; transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">
+                        Auto Fill
+                    </button>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.5rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Lower</label>
+                        <input type="number" id="gridLowerPrice" class="form-input" placeholder="94000" step="0.01" oninput="calculateGridStats()" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">Upper</label>
+                        <input type="number" id="gridUpperPrice" class="form-input" placeholder="116000" step="0.01" oninput="calculateGridStats()" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem;">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2. Number of Grids -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.75rem;">2. Number of Grids</label>
+                
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <input type="number" id="gridCount" min="2" max="170" value="10" oninput="calculateGridStats()" style="flex: 1; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="grid-mode-btn active" onclick="selectGridMode('arithmetic')" style="padding: 0.5rem 1rem; border: 2px solid #3b82f6; background: #eff6ff; border-radius: 6px; font-weight: 600; color: #3b82f6; cursor: pointer; transition: all 0.2s; font-size: 0.75rem;">
+                            Arithmetic
+                        </button>
+                        <button type="button" class="grid-mode-btn" onclick="selectGridMode('manual')" style="padding: 0.5rem 1rem; border: 2px solid #e2e8f0; background: white; border-radius: 6px; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s; font-size: 0.75rem;">
+                            Manual
+                        </button>
+                    </div>
+                </div>
+                <div style="font-size: 0.7rem; color: #64748b; line-height: 1.4;">
+                    Profit/grid(fees deducted): <span id="profitPerGrid" style="font-weight: 600;">--</span>
+                </div>
+            </div>
+            
+            <!-- 3. Investment -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #1e293b; margin-bottom: 0.75rem;">3. Investment</label>
+                <div style="position: relative;">
+                    <input type="number" id="gridInvestment" class="form-input" placeholder="100" step="10" min="10" oninput="calculateGridStats()" style="width: 100%; padding: 0.75rem 4rem 0.75rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem;">
+                    <span style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.875rem; color: #64748b; font-weight: 600;">USDT</span>
+                </div>
+                <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.5rem;">
+                    Available: <span style="font-weight: 600; color: #1e293b;">{{ "%.2f"|format(user.balance) }} USDT</span> 💎
+                </div>
+            </div>
+            
+            <!-- Advanced (Optional) -->
+            <div style="margin-bottom: 1.5rem;">
+                <button type="button" onclick="toggleAdvancedGrid()" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 600; color: #1e293b;">
+                    <span>Advanced (Optional)</span>
+                    <span id="advancedGridToggleIcon">▼</span>
+                </button>
+                
+                <div id="advancedGridSettings" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #1e293b; margin-bottom: 0.75rem; cursor: pointer;">
+                        <input type="checkbox" id="trailingUp">
+                        <span>Trailing Up</span>
+                    </label>
+                    
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #1e293b; margin-bottom: 0.75rem; cursor: pointer;">
+                        <input type="checkbox" id="gridTrigger">
+                        <span>Grid Trigger</span>
+                    </label>
+                    
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #1e293b; margin-bottom: 0.75rem; cursor: pointer;">
+                        <input type="checkbox" id="tpSl">
+                        <span>TP/SL</span>
+                    </label>
+                    
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #1e293b; cursor: pointer;">
+                        <input type="checkbox" id="sellAllOnStop" checked>
+                        <span>Sell all BTC on stop</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Create Button -->
+            <button type="button" onclick="createGridBot()" class="btn btn-success" style="width: 100%; padding: 1rem; font-size: 1rem; font-weight: 700; border-radius: 8px; background: #10b981; color: white; border: none; cursor: pointer; transition: all 0.2s;">
+                Create
+            </button>
+        </div>
+    </div>
+    
+    <!-- Bottom Tabs: Running / History / PNL Analysis -->
+    <div style="background: white; border-top: 2px solid #e2e8f0;">
+        <div style="display: flex; border-bottom: 1px solid #e2e8f0; padding: 0 2rem;">
+            <button class="grid-bottom-tab active" onclick="switchGridBottomTab('running')" id="runningTab" style="padding: 1rem 1.5rem; border: none; background: none; font-weight: 600; color: #3b82f6; border-bottom: 2px solid #3b82f6; cursor: pointer; font-size: 0.875rem;">
+                Running
+            </button>
+            <button class="grid-bottom-tab" onclick="switchGridBottomTab('history')" id="historyTab" style="padding: 1rem 1.5rem; border: none; background: none; font-weight: 600; color: #64748b; cursor: pointer; font-size: 0.875rem;">
+                History
+            </button>
+            <button class="grid-bottom-tab" onclick="switchGridBottomTab('pnl')" id="pnlTab" style="padding: 1rem 1.5rem; border: none; background: none; font-weight: 600; color: #64748b; cursor: pointer; font-size: 0.875rem;">
+                PNL Analysis
+            </button>
+        </div>
+        
+        <!-- Running Orders Content -->
+        <div id="runningContent" class="grid-bottom-content" style="padding: 2rem; text-align: center; color: #64748b;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+            <p style="margin: 0; font-size: 0.875rem;">You have no running orders.</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem;">Start a Grid bot to see your orders here</p>
+        </div>
+        
+        <!-- History Content -->
+        <div id="historyContent" class="grid-bottom-content" style="padding: 2rem; text-align: center; color: #64748b; display: none;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📜</div>
+            <p style="margin: 0; font-size: 0.875rem;">No order history yet.</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem;">Your completed orders will appear here</p>
+        </div>
+        
+        <!-- PNL Analysis Content -->
+        <div id="pnlContent" class="grid-bottom-content" style="padding: 2rem; text-align: center; color: #64748b; display: none;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+            <p style="margin: 0; font-size: 0.875rem;">No PNL data available.</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem;">Your profit & loss analysis will appear here</p>
+        </div>
+    </div>
+</div>
+
+<!-- TradingView Widget Script -->
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<script>
+    let gridWidget = null;
+    let gridMode = 'arithmetic';
+    let currentPrice = 0;
+    let tradeMode = 'buy';
+    let aiModeEnabledGrid = false;
+
+    // Toggle "How to Use" section
+    function toggleHowToUse() {
+        const content = document.getElementById('howToUseContent');
+        const icon = document.getElementById('howToUseIcon');
+        
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            icon.textContent = '▲';
+            icon.style.transform = 'rotate(180deg)';
+        } else {
+            content.style.display = 'none';
+            icon.textContent = '▼';
+            icon.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    // Initialize TradingView chart
+    function initGridTradingView(symbol) {
+        if (gridWidget) {
+            gridWidget.remove();
+        }
+        
+        gridWidget = new TradingView.widget({
+            "autosize": true,
+            "symbol": "BINANCE:" + symbol,
+            "interval": "240",
+            "timezone": "Etc/UTC",
+            "theme": "light",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "allow_symbol_change": false,
+            "container_id": "gridTradingViewChart",
+            "studies": [
+                "MASimple@tv-basicstudies"
+            ],
+            "hide_side_toolbar": false
+        });
+    }
+
+    // Fetch current price
+    async function fetchGridPrice() {
+        try {
+            const symbol = document.getElementById('gridSymbol').value;
+            const response = await fetch(`/api/market/live_prices?symbols=${symbol}`);
+            const data = await response.json();
+            
+            if (data.success && data.prices[symbol]) {
+                currentPrice = parseFloat(data.prices[symbol]);
+                document.getElementById('currentGridPrice').innerHTML = 
+                    `Current: <span style="font-weight: 600; color: #0891b2;">$${currentPrice.toLocaleString()}</span>`;
+            }
+        } catch (error) {
+            console.error('Error fetching price:', error);
+        }
+    }
+
+    // Auto fill price range (±20% from current price)
+    function autoFillPriceRange() {
+        if (currentPrice > 0) {
+            const lowerPrice = (currentPrice * 0.8).toFixed(2);
+            const upperPrice = (currentPrice * 1.2).toFixed(2);
+            
+            document.getElementById('gridLowerPrice').value = lowerPrice;
+            document.getElementById('gridUpperPrice').value = upperPrice;
+            
+            calculateGridStats();
+        }
+    }
+
+    // Calculate grid statistics
+    function calculateGridStats() {
+        const lowerPrice = parseFloat(document.getElementById('gridLowerPrice').value) || 0;
+        const upperPrice = parseFloat(document.getElementById('gridUpperPrice').value) || 0;
+        const gridCount = parseInt(document.getElementById('gridCount').value) || 0;
+        const investment = parseFloat(document.getElementById('gridInvestment').value) || 0;
+        
+        if (lowerPrice > 0 && upperPrice > lowerPrice && gridCount >= 2) {
+            const priceRange = upperPrice - lowerPrice;
+            const gridStep = priceRange / gridCount;
+            
+            // Simplified profit calculation (0.1% per grid as example)
+            const profitPercentage = 0.1; // 0.1% profit per grid
+            const profitPerGrid = (investment / gridCount) * (profitPercentage / 100);
+            
+            document.getElementById('profitPerGrid').textContent = 
+                `$${profitPerGrid.toFixed(4)} (${profitPercentage}%)`;
+        } else {
+            document.getElementById('profitPerGrid').textContent = '--';
+        }
+    }
+
+    // Select grid mode
+    function selectGridMode(mode) {
+        gridMode = mode;
+        
+        // Update button styles
+        document.querySelectorAll('.grid-mode-btn').forEach(btn => {
+            btn.style.border = '2px solid #e2e8f0';
+            btn.style.background = 'white';
+            btn.style.color = '#64748b';
+        });
+        
+        event.target.style.border = '2px solid #3b82f6';
+        event.target.style.background = '#eff6ff';
+        event.target.style.color = '#3b82f6';
+        
+        calculateGridStats();
+    }
+
+    // Set trade mode (Buy/Sell)
+    function setGridMode(mode) {
+        tradeMode = mode;
+        
+        const buyBtn = document.getElementById('buyGridBtn');
+        const sellBtn = document.getElementById('sellGridBtn');
+        
+        if (mode === 'buy') {
+            buyBtn.style.background = '#10b981';
+            buyBtn.style.color = 'white';
+            buyBtn.style.border = 'none';
+            
+            sellBtn.style.background = '#f8fafc';
+            sellBtn.style.color = '#94a3b8';
+            sellBtn.style.border = '1px solid #e2e8f0';
+        } else {
+            buyBtn.style.background = '#f8fafc';
+            buyBtn.style.color = '#94a3b8';
+            buyBtn.style.border = '1px solid #e2e8f0';
+            
+            sellBtn.style.background = '#ef4444';
+            sellBtn.style.color = 'white';
+            sellBtn.style.border = 'none';
+        }
+    }
+
+    // Toggle advanced settings
+    function toggleAdvancedGrid() {
+        const content = document.getElementById('advancedGridSettings');
+        const icon = document.getElementById('advancedGridToggleIcon');
+        
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            icon.textContent = '▲';
+        } else {
+            content.style.display = 'none';
+            icon.textContent = '▼';
+        }
+    }
+
+    // Switch bottom tabs
+    function switchGridBottomTab(tab) {
+        // Update tab buttons
+        document.querySelectorAll('.grid-bottom-tab').forEach(btn => {
+            btn.style.color = '#64748b';
+            btn.style.borderBottom = 'none';
+        });
+        
+        // Hide all content
+        document.querySelectorAll('.grid-bottom-content').forEach(content => {
+            content.style.display = 'none';
+        });
+        
+        // Show selected tab
+        if (tab === 'running') {
+            document.getElementById('runningTab').style.color = '#3b82f6';
+            document.getElementById('runningTab').style.borderBottom = '2px solid #3b82f6';
+            document.getElementById('runningContent').style.display = 'block';
+        } else if (tab === 'history') {
+            document.getElementById('historyTab').style.color = '#3b82f6';
+            document.getElementById('historyTab').style.borderBottom = '2px solid #3b82f6';
+            document.getElementById('historyContent').style.display = 'block';
+        } else if (tab === 'pnl') {
+            document.getElementById('pnlTab').style.color = '#3b82f6';
+            document.getElementById('pnlTab').style.borderBottom = '2px solid #3b82f6';
+            document.getElementById('pnlContent').style.display = 'block';
+        }
+    }
+
+    // Handle grid symbol change (show custom input if Custom selected)
+    function handleGridSymbolChange() {
+        const symbolSelect = document.getElementById('gridSymbol');
+        const customInput = document.getElementById('customGridSymbolInput');
+        
+        if (symbolSelect.value === 'CUSTOM') {
+            customInput.style.display = 'block';
+            customInput.focus();
+        } else {
+            customInput.style.display = 'none';
+            // Update chart and price
+            initGridTradingView(symbolSelect.value);
+            fetchGridPrice();
+        }
+    }
+
+    // Get the actual grid symbol (from dropdown or custom input)
+    function getActualGridSymbol() {
+        const symbolSelect = document.getElementById('gridSymbol');
+        const customInput = document.getElementById('customGridSymbolInput');
+        
+        if (symbolSelect.value === 'CUSTOM') {
+            return customInput.value.trim().toUpperCase();
+        }
+        return symbolSelect.value;
+    }
+
+    // Toggle AI Decision Mode for Grid
+    function toggleAIModeGrid() {
+        const checkbox = document.getElementById('aiDecisionModeGrid');
+        const infoDiv = document.getElementById('aiModeInfoGrid');
+        const toggle = checkbox.parentElement.querySelectorAll('span')[0];
+        const slider = checkbox.parentElement.querySelectorAll('span')[1];
+        
+        aiModeEnabledGrid = checkbox.checked;
+        
+        if (aiModeEnabledGrid) {
+            // Show info
+            infoDiv.style.display = 'block';
+            
+            // Update toggle appearance
+            toggle.style.backgroundColor = 'rgba(16, 185, 129, 0.8)';
+            slider.style.transform = 'translateX(28px)';
+            
+            // Fetch AI recommendations
+            fetchAIRecommendationsGrid();
+        } else {
+            infoDiv.style.display = 'none';
+            toggle.style.backgroundColor = 'rgba(255,255,255,0.3)';
+            slider.style.transform = 'translateX(0)';
+        }
+    }
+
+    // Fetch AI-recommended parameters for Grid
+    async function fetchAIRecommendationsGrid() {
+        try {
+            const symbol = getActualGridSymbol();  // Use actual symbol (handles custom input)
+            
+            // Validate symbol
+            if (!symbol || symbol === '' || symbol === 'CUSTOM') {
+                document.getElementById('aiModeInfoGrid').innerHTML = '⚠️ <strong>Please select or enter a valid symbol first!</strong>';
+                return;
+            }
+            
+            // Show loading state
+            const infoDiv = document.getElementById('aiModeInfoGrid');
+            infoDiv.innerHTML = '🤖 <strong>AI is analyzing...</strong> Fetching market data and calculating optimal grid parameters...';
+            
+            // Fetch AI prediction
+            const response = await fetch('/api/advanced_predict', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    symbol: symbol,
+                    mode: 'ai',
+                    timeframe: '4h'
+                })
+            });
+            
+            const data = await response.json();
+            
+            console.log('Grid AI Response:', data);  // Debug log
+            
+            if (data.success && data.result) {
+                const prediction = data.result;
+                
+                console.log('Grid Prediction:', prediction);  // Debug log
+                console.log('Current Grid Price:', currentPrice);  // Debug log
+                
+                // Validate required fields
+                if (!prediction.signal || !prediction.confidence) {
+                    throw new Error('Invalid prediction data: missing signal or confidence');
+                }
+                
+                // Calculate AI-recommended grid parameters
+                const aiParams = calculateAIGridParameters(prediction, currentPrice);
+                
+                console.log('Grid AI Params:', aiParams);  // Debug log
+                
+                // Auto-fill form with AI recommendations
+                document.getElementById('gridLowerPrice').value = aiParams.lowerPrice;
+                document.getElementById('gridUpperPrice').value = aiParams.upperPrice;
+                document.getElementById('gridCount').value = aiParams.gridCount;
+                document.getElementById('gridInvestment').value = aiParams.investment;
+                
+                // Recalculate stats
+                calculateGridStats();
+                
+                // Update info
+                infoDiv.innerHTML = `
+                    ✨ <strong>AI Recommendations Applied!</strong><br>
+                    Signal: <strong>${prediction.signal}</strong> | 
+                    Confidence: <strong>${Math.round(prediction.confidence)}%</strong> | 
+                    Range: <strong>$${Number(aiParams.lowerPrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} - $${Number(aiParams.upperPrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong><br>
+                    <span style="font-size: 0.7rem; opacity: 0.9;">AI has configured optimal grid parameters based on market volatility analysis.</span>
+                `;
+            } else {
+                console.error('Grid AI prediction failed:', data);
+                infoDiv.innerHTML = '⚠️ <strong>AI analysis failed.</strong> Please configure parameters manually or try again.';
+            }
+        } catch (error) {
+            console.error('Error fetching AI recommendations for grid:', error);
+            document.getElementById('aiModeInfoGrid').innerHTML = '⚠️ <strong>Error connecting to AI.</strong> Please try again or configure manually.';
+        }
+    }
+
+    // Calculate AI-recommended grid parameters
+    function calculateAIGridParameters(prediction, currentPrice) {
+        const signal = prediction.signal ? prediction.signal.toUpperCase() : 'HOLD';
+        const confidence = prediction.confidence || 50;
+        
+        // Ensure currentPrice is valid
+        if (!currentPrice || currentPrice === 0) {
+            currentPrice = 50000;  // Fallback price
+        }
+        
+        let lowerPrice, upperPrice, gridCount, investment;
+        
+        if (signal === 'BUY' || signal === 'STRONG_BUY') {
+            // Bullish: Range above current price
+            lowerPrice = (currentPrice * 0.95).toFixed(2);
+            upperPrice = (currentPrice * 1.15).toFixed(2);
+            gridCount = confidence > 70 ? 15 : 10;
+            investment = confidence > 70 ? 500 : 300;
+        } else if (signal === 'SELL' || signal === 'STRONG_SELL') {
+            // Bearish: Range below current price
+            lowerPrice = (currentPrice * 0.85).toFixed(2);
+            upperPrice = (currentPrice * 1.05).toFixed(2);
+            gridCount = 10;
+            investment = 200;
+        } else {
+            // Neutral/HOLD: Balanced range around current price
+            lowerPrice = (currentPrice * 0.90).toFixed(2);
+            upperPrice = (currentPrice * 1.10).toFixed(2);
+            gridCount = 12;
+            investment = 400;
+        }
+        
+        return {
+            lowerPrice: parseFloat(lowerPrice),
+            upperPrice: parseFloat(upperPrice),
+            gridCount: parseInt(gridCount),
+            investment: parseFloat(investment)
+        };
+    }
+
+    // Create Grid Bot
+    function createGridBot() {
+        const symbol = getActualGridSymbol();  // Use actual symbol (handles custom input)
+        const lowerPrice = parseFloat(document.getElementById('gridLowerPrice').value);
+        const upperPrice = parseFloat(document.getElementById('gridUpperPrice').value);
+        const gridCount = parseInt(document.getElementById('gridCount').value);
+        const investment = parseFloat(document.getElementById('gridInvestment').value);
+        
+        // Validate symbol
+        if (!symbol || symbol === '' || symbol === 'CUSTOM') {
+            alert('⚠️ Please select or enter a valid trading symbol!');
+            return;
+        }
+        
+        // Validation
+        if (!lowerPrice || !upperPrice || !gridCount || !investment) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        if (lowerPrice >= upperPrice) {
+            alert('Upper price must be greater than lower price');
+            return;
+        }
+        
+        if (gridCount < 2 || gridCount > 170) {
+            alert('Number of grids must be between 2 and 170');
+            return;
+        }
+        
+        if (investment < 10) {
+            alert('Minimum investment is 10 USDT');
+            return;
+        }
+        
+        // Collect advanced options
+        const advancedOptions = {
+            trailingUp: document.getElementById('trailingUp').checked,
+            gridTrigger: document.getElementById('gridTrigger').checked,
+            tpSl: document.getElementById('tpSl').checked,
+            sellAllOnStop: document.getElementById('sellAllOnStop').checked
+        };
+        
+        console.log('Creating Grid Bot:', {
+            symbol,
+            lowerPrice,
+            upperPrice,
+            gridCount,
+            gridMode,
+            investment,
+            tradeMode,
+            ...advancedOptions
+        });
+        
+        alert('Grid Bot creation feature coming soon! 🚀\n\nYour configuration:\n' +
+              `Symbol: ${symbol}\n` +
+              `Mode: ${tradeMode.toUpperCase()}\n` +
+              `Price Range: $${lowerPrice} - $${upperPrice}\n` +
+              `Grids: ${gridCount} (${gridMode})\n` +
+              `Investment: ${investment} USDT`);
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const activeSymbol = '{{ active_symbol }}' || 'BTCUSDT';
+        
+        // Initialize TradingView
+        initGridTradingView(activeSymbol);
+        
+        // Fetch initial price
+        fetchGridPrice();
+        
+        // Refresh price every 5 seconds
+        setInterval(fetchGridPrice, 5000);
+        
+        // Symbol change handler
+        document.getElementById('gridSymbol').addEventListener('change', function(e) {
+            initGridTradingView(e.target.value);
+            fetchGridPrice();
+        });
+        
+        // Timeframe change handler
+        document.getElementById('chartTimeframe').addEventListener('change', function(e) {
+            const intervals = {
+                '1H': '60',
+                '4H': '240',
+                '1D': 'D',
+                '1W': 'W'
+            };
+            
+            if (gridWidget && gridWidget.chart) {
+                gridWidget.chart().setResolution(intervals[e.target.value]);
+            }
+        });
+    });
+</script>
+{% endblock %}

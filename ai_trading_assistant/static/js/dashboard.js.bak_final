@@ -1,0 +1,3611 @@
+/**
+ * Dashboard JavaScript - AI Trading Assistant
+ * This file handles all dashboard-specific functionality including:
+ * - AI prediction API calls
+ * - Price chart rendering
+ * - Real-time data updates
+ * 
+ * Uses vanilla JavaScript (no frameworks required)
+ */
+
+// ============================================
+// GLOBAL VARIABLES
+// ============================================
+
+let priceChart = null; // Will hold our chart instance
+let chartData = {
+    labels: [],
+    prices: []
+};
+
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard JavaScript loaded');
+    
+    // IMPORTANT: Initialize all event listeners first
+    initDashboard();
+    
+    // Draw initial chart
+    drawPriceChart();
+    
+    // Load portfolio on page load
+    loadPortfolio();
+    
+    // Load grid bots on page load
+    loadGridBots();
+    
+    // Load technical indicators on page load
+    loadIndicators();
+    
+    // Load initial prices for all trading forms (Task 25)
+    // This updates Buy/Sell, Grid Bot, and DCA Bot price displays
+    updateAllPrices();
+    
+    // Set up periodic price updates (Task 25)
+    // Updates prices every 30 seconds to keep them fresh
+    // In production, you might want to use WebSocket for real-time updates
+    setInterval(updateAllPrices, 30000); // 30 seconds
+    console.log('✅ Periodic price updates enabled (every 30 seconds)');
+    
+    // Load exchange accounts for selector
+    loadExchangeAccounts();
+    
+    // Load DCA bots on page load (Task 25)
+    loadDCABots();
+    
+    // TASK 30: Initialize Tabbed Navigation
+    initializeToolsNavigation();
+});
+
+
+/**
+ * Initialize dashboard components and event listeners
+ */
+function initDashboard() {
+    console.log('🔧 Initializing dashboard components...');
+    
+    // Get New Prediction Button
+    const refreshBtn = document.getElementById('refreshPredictionBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', getNewPrediction);
+        console.log('✅ Prediction button connected');
+    }
+    
+    // Trading Buttons
+    const buyBtn = document.getElementById('buyBtn');
+    const sellBtn = document.getElementById('sellBtn');
+    
+    if (buyBtn) {
+        buyBtn.addEventListener('click', () => handleTrade('BUY'));
+        console.log('✅ Buy button connected');
+    }
+    
+    if (sellBtn) {
+        sellBtn.addEventListener('click', () => handleTrade('SELL'));
+        console.log('✅ Sell button connected');
+    }
+    
+    // Quantity Input - Calculate estimated total
+    const quantityInput = document.getElementById('tradeQuantity');
+    if (quantityInput) {
+        quantityInput.addEventListener('input', calculateEstimatedTotal);
+        console.log('✅ Quantity input connected');
+    }
+    
+    // Symbol Select - Update price display
+    const symbolSelect = document.getElementById('tradeSymbol');
+    if (symbolSelect) {
+        symbolSelect.addEventListener('change', updatePriceDisplay);
+        console.log('✅ Trading symbol selector connected');
+    }
+    
+    // Refresh Indicators Button
+    const refreshIndicatorsBtn = document.getElementById('refreshIndicatorsBtn');
+    if (refreshIndicatorsBtn) {
+        refreshIndicatorsBtn.addEventListener('click', function(e) {
+            console.log('🔄 Refresh indicators clicked');
+            loadIndicators();
+        });
+        console.log('✅ Indicators refresh button connected');
+    } else {
+        console.log('⚠️ Indicators refresh button not found');
+    }
+    
+    // Sync Prices Button
+    const syncPricesBtn = document.getElementById('syncPricesBtn');
+    if (syncPricesBtn) {
+        syncPricesBtn.addEventListener('click', syncLatestPrices);
+        console.log('✅ Sync prices button connected');
+    }
+    
+    // Grid Bot Form Toggle
+    // TASK 28: Grid Bot Toggle Button
+    const toggleFormBtn = document.getElementById('toggleGridBotForm');
+    if (toggleFormBtn) {
+        toggleFormBtn.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent any default button behavior
+            console.log('🤖 Toggle grid bot form clicked');
+            toggleGridBotForm();
+        });
+        console.log('✅ Grid bot toggle button connected');
+    } else {
+        console.log('⚠️ Grid bot toggle button not found');
+    }
+    
+    // TASK 28: Grid Bot Form Submit
+    const createBotForm = document.getElementById('createGridBotForm');
+    if (createBotForm) {
+        createBotForm.addEventListener('submit', handleCreateGridBot);
+        console.log('✅ Grid bot form connected to handleCreateGridBot');
+        console.log('📋 Form element:', createBotForm);
+        
+        // Verify all required form fields exist
+        const requiredFields = ['gridSymbol', 'gridLowerPrice', 'gridUpperPrice', 'gridCount', 'gridInvestment'];
+        let allFieldsPresent = true;
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                console.log(`   ✅ ${fieldId}: found`);
+            } else {
+                console.log(`   ❌ ${fieldId}: NOT FOUND`);
+                allFieldsPresent = false;
+            }
+        });
+        
+        if (allFieldsPresent) {
+            console.log('🎉 All grid bot form fields are present and ready!');
+        } else {
+            console.log('⚠️ Some grid bot form fields are missing!');
+        }
+    } else {
+        console.log('⚠️ Grid bot form not found');
+    }
+    
+    // Close Grid Levels
+    const closeGridLevelsBtn = document.getElementById('closeGridLevels');
+    if (closeGridLevelsBtn) {
+        closeGridLevelsBtn.addEventListener('click', closeGridLevels);
+        console.log('✅ Close grid levels button connected');
+    }
+    
+    // Grid form inputs - update preview
+    const gridInputs = ['gridLowerPrice', 'gridUpperPrice', 'gridCount'];
+    gridInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.addEventListener('input', updateGridPreview);
+        }
+    });
+    
+    // Grid Bot symbol selector - update price (Task 25)
+    const gridSymbolSelect = document.getElementById('gridSymbol');
+    if (gridSymbolSelect) {
+        gridSymbolSelect.addEventListener('change', updateGridPrice);
+        console.log('✅ Grid Bot symbol selector connected');
+    }
+    
+    // DCA Bot symbol selector - update price (Task 25)
+    const dcaSymbolSelect = document.getElementById('dcaSymbol');
+    if (dcaSymbolSelect) {
+        dcaSymbolSelect.addEventListener('change', updateDCAPrice);
+        console.log('✅ DCA Bot symbol selector connected');
+    }
+    
+    // TASK 29: DCA Bot Form Submit
+    const createDCABotForm = document.getElementById('createDCABotForm');
+    if (createDCABotForm) {
+        createDCABotForm.addEventListener('submit', handleCreateDCABot);
+        console.log('✅ DCA bot form connected to handleCreateDCABot');
+        console.log('📋 Form element:', createDCABotForm);
+        
+        // Verify all required form fields exist
+        const requiredDCAFields = ['dcaSymbol', 'dcaAmount', 'dcaInterval', 'dcaTotalCycles', 'dcaExchangeAccount'];
+        let allDCAFieldsPresent = true;
+        requiredDCAFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                console.log(`   ✅ ${fieldId}: found`);
+            } else {
+                console.log(`   ❌ ${fieldId}: NOT FOUND`);
+                allDCAFieldsPresent = false;
+            }
+        });
+        
+        if (allDCAFieldsPresent) {
+            console.log('🎉 All DCA bot form fields are present and ready!');
+        } else {
+            console.log('⚠️ Some DCA bot form fields are missing!');
+        }
+    } else {
+        console.log('⚠️ DCA bot form not found');
+    }
+    
+    // Exchange account selector
+    const exchangeAccountSelect = document.getElementById('exchangeAccountSelect');
+    if (exchangeAccountSelect) {
+        exchangeAccountSelect.addEventListener('change', onExchangeAccountChange);
+        console.log('✅ Exchange account selector connected');
+    }
+    
+    // Refresh exchange button
+    const refreshExchangeBtn = document.getElementById('refreshExchangeBtn');
+    if (refreshExchangeBtn) {
+        refreshExchangeBtn.addEventListener('click', refreshExchangePortfolio);
+        console.log('✅ Refresh exchange button connected');
+    }
+    
+    // AI Trade button
+    const aiTradeBtn = document.getElementById('aiTradeBtn');
+    if (aiTradeBtn) {
+        aiTradeBtn.addEventListener('click', executeAITrade);
+        console.log('✅ AI Trade button connected');
+    }
+    
+    // TASK 38: Grid Type selector - update explanation
+    const gridTypeSelect = document.getElementById('gridType');
+    if (gridTypeSelect) {
+        gridTypeSelect.addEventListener('change', updateGridTypeExplanation);
+        console.log('✅ Grid Type selector connected');
+    }
+    
+    console.log('✅ Dashboard initialization complete!');
+}
+
+/**
+ * Update grid type explanation text (TASK 38)
+ * Shows user-friendly explanation of ARITHMETIC vs GEOMETRIC grids
+ */
+function updateGridTypeExplanation() {
+    const gridType = document.getElementById('gridType').value;
+    const explainSpan = document.getElementById('gridTypeExplain');
+    
+    if (!explainSpan) return;
+    
+    if (gridType === 'ARITHMETIC') {
+        explainSpan.textContent = 'Arithmetic: Equal price intervals ($100, $110, $120)';
+        explainSpan.style.color = '#3b82f6';
+    } else {
+        explainSpan.textContent = 'Geometric: Equal % intervals ($100, $110, $121, $133)';
+        explainSpan.style.color = '#10b981';
+    }
+}
+
+
+// ============================================
+// AI PREDICTION FUNCTIONALITY
+// ============================================
+
+/**
+ * Get new AI prediction from the API
+ * Makes AJAX call to /api/predict endpoint
+ */
+async function getNewPrediction() {
+    console.log('Fetching new AI prediction...');
+    
+    // Get DOM elements
+    const contentDiv = document.getElementById('predictionContent');
+    const loadingDiv = document.getElementById('predictionLoading');
+    const button = document.getElementById('refreshPredictionBtn');
+    
+    // Show loading state
+    contentDiv.style.display = 'none';
+    loadingDiv.style.display = 'block';
+    button.disabled = true;
+    button.textContent = '⏳ Loading...';
+    
+    try {
+        // Get active symbol from selector
+        // This ensures prediction is for the currently displayed cryptocurrency
+        const activeSymbol = getActiveSymbol();
+        
+        // Make API call to get prediction for active symbol
+        const response = await fetch('/api/predict/' + activeSymbol);
+        
+        // Check if response is OK
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Parse JSON response
+        const data = await response.json();
+        
+        // Check if prediction was successful
+        if (data.success) {
+            // Update UI with prediction
+            displayPrediction(data);
+            
+            // Show success notification
+            showNotification('✅ Prediction generated successfully!', 'success');
+        } else {
+            // Prediction failed
+            throw new Error(data.error || 'Prediction failed');
+        }
+        
+    } catch (error) {
+        // Handle errors
+        console.error('Error fetching prediction:', error);
+        
+        // Display error message
+        contentDiv.innerHTML = `
+            <div class="prediction-empty" style="color: var(--danger-color);">
+                <p><strong>❌ Failed to generate prediction</strong></p>
+                <p>${error.message}</p>
+                <p style="font-size: 0.875rem; margin-top: 1rem;">
+                    Please make sure:<br>
+                    • Model is trained (run: python services/train_model.py)<br>
+                    • Price data exists in database<br>
+                    • Flask server is running
+                </p>
+            </div>
+        `;
+        
+        // Show error notification
+        showNotification('❌ Failed to get prediction: ' + error.message, 'error');
+        
+    } finally {
+        // Always hide loading and re-enable button
+        loadingDiv.style.display = 'none';
+        contentDiv.style.display = 'block';
+        button.disabled = false;
+        button.textContent = '🔄 Get New Prediction';
+    }
+}
+
+
+/**
+ * Display prediction result in the UI
+ * @param {Object} data - Prediction data from API
+ */
+function displayPrediction(data) {
+    const contentDiv = document.getElementById('predictionContent');
+    
+    // Determine CSS class based on prediction direction
+    const directionClass = data.direction === 'UP' ? 'up' : 'down';
+    
+    // Format confidence percentage (round to 1 decimal)
+    const confidencePct = Math.round(data.confidence_pct * 10) / 10;
+    
+    // Get current timestamp
+    const now = new Date().toLocaleString();
+    
+    // Build HTML for prediction display
+    const html = `
+        <div class="prediction-result">
+            <div class="prediction-direction ${directionClass}">
+                ${data.direction}
+            </div>
+            <div class="prediction-confidence">
+                <div class="confidence-label">Confidence</div>
+                <div class="confidence-value">${confidencePct}%</div>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: ${confidencePct}%"></div>
+                </div>
+            </div>
+            <div class="prediction-meta">
+                <small>Generated: ${now}</small><br>
+                <small>Symbol: ${data.symbol} | Current Price: $${data.current_price.toLocaleString()}</small>
+            </div>
+        </div>
+    `;
+    
+    // Update the DOM
+    contentDiv.innerHTML = html;
+    
+    // Update data freshness info (TASK 26)
+    updatePredictionDataInfo(data);
+    
+    // Add animation
+    contentDiv.style.opacity = '0';
+    setTimeout(() => {
+        contentDiv.style.transition = 'opacity 0.5s';
+        contentDiv.style.opacity = '1';
+    }, 10);
+}
+
+
+/**
+ * Update prediction data freshness display (TASK 26)
+ * Shows user that prediction is based on real-time exchange data
+ */
+function updatePredictionDataInfo(data) {
+    const dataInfoDiv = document.getElementById('predictionDataInfo');
+    if (!dataInfoDiv) return;
+    
+    // Update data info fields
+    if (data.last_close) {
+        document.getElementById('predictionLastPrice').textContent = `$${data.last_close.toLocaleString()}`;
+    }
+    
+    if (data.last_update) {
+        document.getElementById('predictionLastUpdate').textContent = formatDateTime(data.last_update);
+    }
+    
+    if (data.data_source) {
+        document.getElementById('predictionDataSource').textContent = data.data_source;
+    }
+    
+    // Show the data info div
+    dataInfoDiv.style.display = 'block';
+    
+    console.log('✅ Prediction data freshness info updated');
+}
+
+
+// ============================================
+// PRICE CHART FUNCTIONALITY
+// ============================================
+
+/**
+ * Draw a simple price chart using Canvas API
+ * Uses dummy data for demonstration
+ */
+function drawPriceChart() {
+    const canvas = document.getElementById('priceChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size (responsive)
+    canvas.width = canvas.offsetWidth;
+    canvas.height = 300;
+    
+    // Generate dummy price data (simulated)
+    // In real app, this would come from the backend
+    const dataPoints = generateDummyPriceData();
+    
+    // Store in global variable
+    chartData.labels = dataPoints.labels;
+    chartData.prices = dataPoints.prices;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw chart
+    drawLineChart(ctx, canvas.width, canvas.height, dataPoints.prices);
+}
+
+
+/**
+ * Generate dummy price data for demonstration
+ * In production, this would fetch real data from API
+ * @returns {Object} Object with labels and prices arrays
+ */
+function generateDummyPriceData() {
+    const labels = [];
+    const prices = [];
+    const basePrice = 45000; // Starting price (e.g., Bitcoin)
+    const numPoints = 24; // 24 hours of data
+    
+    let currentPrice = basePrice;
+    
+    for (let i = 0; i < numPoints; i++) {
+        // Generate time label
+        const hour = i;
+        labels.push(`${hour}:00`);
+        
+        // Generate price with random walk
+        const change = (Math.random() - 0.5) * 500; // +/- $250
+        currentPrice += change;
+        prices.push(currentPrice);
+    }
+    
+    return { labels, prices };
+}
+
+
+/**
+ * Draw a line chart on canvas
+ * @param {CanvasRenderingContext2D} ctx - Canvas 2D context
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {Array} data - Array of price data points
+ */
+function drawLineChart(ctx, width, height, data) {
+    // Chart padding
+    const padding = 40;
+    const chartWidth = width - (padding * 2);
+    const chartHeight = height - (padding * 2);
+    
+    // Find min and max values for scaling
+    const maxValue = Math.max(...data);
+    const minValue = Math.min(...data);
+    const valueRange = maxValue - minValue;
+    
+    // Helper function to convert data point to canvas coordinates
+    function getX(index) {
+        return padding + (index / (data.length - 1)) * chartWidth;
+    }
+    
+    function getY(value) {
+        return height - padding - ((value - minValue) / valueRange) * chartHeight;
+    }
+    
+    // Draw background
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Draw grid lines
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    
+    // Horizontal grid lines (5 lines)
+    for (let i = 0; i <= 5; i++) {
+        const y = padding + (i / 5) * chartHeight;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+        
+        // Draw value labels
+        const value = maxValue - (i / 5) * valueRange;
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText('$' + value.toFixed(0), padding - 5, y + 4);
+    }
+    
+    // Vertical grid lines
+    const gridInterval = Math.floor(data.length / 6);
+    for (let i = 0; i < data.length; i += gridInterval) {
+        const x = getX(i);
+        ctx.beginPath();
+        ctx.moveTo(x, padding);
+        ctx.lineTo(x, height - padding);
+        ctx.stroke();
+        
+        // Draw time labels
+        if (chartData.labels[i]) {
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(chartData.labels[i], x, height - padding + 20);
+        }
+    }
+    
+    // Draw the line chart
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    ctx.beginPath();
+    for (let i = 0; i < data.length; i++) {
+        const x = getX(i);
+        const y = getY(data[i]);
+        
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.stroke();
+    
+    // Draw area fill under the line
+    ctx.lineTo(getX(data.length - 1), height - padding);
+    ctx.lineTo(getX(0), height - padding);
+    ctx.closePath();
+    
+    const gradient = ctx.createLinearGradient(0, padding, 0, height - padding);
+    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
+    gradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Draw data points
+    ctx.fillStyle = '#2563eb';
+    for (let i = 0; i < data.length; i++) {
+        const x = getX(i);
+        const y = getY(data[i]);
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Draw title
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Bitcoin Price (Last 24 Hours)', width / 2, 25);
+}
+
+
+/**
+ * Sync trading form symbol selector with chart symbol
+ * This ensures both selectors show the same cryptocurrency
+ */
+function syncTradingSymbol() {
+    const chartSymbol = document.getElementById('symbolSelector');
+    const tradeSymbol = document.getElementById('tradeSymbol');
+    
+    if (chartSymbol && tradeSymbol && chartSymbol.value) {
+        // Set trading form symbol to match chart symbol
+        tradeSymbol.value = chartSymbol.value;
+        // Update price display
+        updatePriceDisplay();
+    }
+}
+
+/**
+ * Get active symbol from chart selector
+ * @returns {string} Current symbol (e.g., "BTCUSDT")
+ */
+function getActiveSymbol() {
+    const select = document.getElementById('symbolSelector');
+    return select ? select.value : 'BTCUSDT';
+}
+
+
+// ============================================
+// TRADING FUNCTIONALITY
+// ============================================
+
+/**
+ * Handle trade execution (Buy or Sell)
+ * @param {string} side - 'BUY' or 'SELL'
+ */
+async function handleTrade(side) {
+    console.log(`Executing ${side} trade...`);
+    
+    // Get form values
+    const symbol = document.getElementById('tradeSymbol').value;
+    const quantity = parseFloat(document.getElementById('tradeQuantity').value);
+    
+    // Validation
+    if (!quantity || quantity <= 0) {
+        showNotification('❌ Please enter a valid quantity', 'error');
+        return;
+    }
+    
+    // Get current price
+    const priceText = document.getElementById('currentPrice').textContent;
+    const price = parseFloat(priceText.replace(/[$,]/g, ''));
+    
+    if (!price || price <= 0) {
+        showNotification('❌ Invalid price', 'error');
+        return;
+    }
+    
+    // Calculate total
+    const total = quantity * price;
+    
+    // Get buttons for disabling during trade
+    const buyBtn = document.getElementById('buyBtn');
+    const sellBtn = document.getElementById('sellBtn');
+    
+    // Disable buttons during trade
+    if (buyBtn) buyBtn.disabled = true;
+    if (sellBtn) sellBtn.disabled = true;
+    
+    try {
+        // Make API call to execute trade
+        const response = await fetch('/trade', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                symbol: symbol,
+                side: side,
+                quantity: quantity,
+                price: price
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show success message
+            const message = `
+                ✅ ${side} order executed!<br>
+                ${quantity} ${symbol} @ $${price.toLocaleString()}<br>
+                Total: $${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}<br>
+                New Balance: $${data.new_balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+            `;
+            showNotification(message, 'success');
+            
+            // Clear quantity input
+            document.getElementById('tradeQuantity').value = '';
+            document.getElementById('estimatedTotal').textContent = '$0.00';
+            
+            // Reload portfolio to show updated holdings
+            loadPortfolio();
+            
+            // Update balance display on page
+            updateBalanceDisplay(data.new_balance);
+            
+        } else {
+            // Show error message
+            showNotification('❌ Trade failed: ' + data.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Trade error:', error);
+        showNotification('❌ Failed to execute trade: ' + error.message, 'error');
+    } finally {
+        // Re-enable buttons
+        if (buyBtn) buyBtn.disabled = false;
+        if (sellBtn) sellBtn.disabled = false;
+    }
+}
+
+
+/**
+ * Calculate and display estimated total for trade
+ */
+function calculateEstimatedTotal() {
+    const quantity = parseFloat(document.getElementById('tradeQuantity').value) || 0;
+    const priceText = document.getElementById('currentPrice').textContent;
+    
+    // Extract price from formatted string (e.g., "$45,600.00" -> 45600)
+    const price = parseFloat(priceText.replace(/[$,]/g, '')) || 0;
+    
+    // Calculate total
+    const total = quantity * price;
+    
+    // Update display
+    const totalDisplay = document.getElementById('estimatedTotal');
+    if (totalDisplay) {
+        totalDisplay.textContent = formatCurrency(total);
+    }
+}
+
+
+/**
+ * Update current price display based on selected symbol
+ * Fetches real price from database via API
+ */
+async function updatePriceDisplay() {
+    const symbol = document.getElementById('tradeSymbol').value;
+    
+    try {
+        // Fetch REAL-TIME price from API (Task 25)
+        // This now uses live CCXT data, not database or dummy prices
+        const response = await fetch('/api/price/' + symbol);
+        const data = await response.json();
+        
+        if (data.success && data.price) {
+            const price = data.price;
+            
+            // Update display with formatted price
+            const priceDisplay = document.getElementById('currentPrice');
+            if (priceDisplay) {
+                priceDisplay.textContent = data.formatted || formatCurrency(price);
+            }
+            
+            // Store for trading calculations
+            window.currentPrices = window.currentPrices || {};
+            window.currentPrices[symbol] = price;
+            
+            console.log(`✅ Updated Buy/Sell price: ${symbol} = ${data.formatted}`);
+            
+        } else {
+            console.error('❌ Failed to fetch price:', data.error);
+            const priceDisplay = document.getElementById('currentPrice');
+            if (priceDisplay) {
+                priceDisplay.textContent = 'Error';
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Error fetching price:', error);
+    }
+    
+    // Recalculate total
+    calculateEstimatedTotal();
+}
+
+
+/**
+ * Update Grid Bot price display (Task 25)
+ * Shows current market price to help user set price range
+ */
+async function updateGridPrice() {
+    const symbolSelect = document.getElementById('gridSymbol');
+    if (!symbolSelect) return;
+    
+    const symbol = symbolSelect.value;
+    const priceDisplay = document.getElementById('gridCurrentPrice');
+    
+    if (!priceDisplay) return;
+    
+    try {
+        // Fetch REAL-TIME price from API
+        const response = await fetch('/api/price/' + symbol);
+        const data = await response.json();
+        
+        if (data.success && data.price) {
+            priceDisplay.textContent = data.formatted || formatCurrency(data.price);
+            priceDisplay.style.color = '#3b82f6'; // Blue color
+            
+            console.log(`✅ Updated Grid Bot price: ${symbol} = ${data.formatted}`);
+        } else {
+            priceDisplay.textContent = 'Error loading price';
+            priceDisplay.style.color = '#ef4444'; // Red color
+        }
+        
+    } catch (error) {
+        console.error('❌ Error fetching grid price:', error);
+        priceDisplay.textContent = 'Error loading price';
+        priceDisplay.style.color = '#ef4444';
+    }
+}
+
+
+/**
+ * Update DCA Bot price display (Task 25)
+ * Shows current market price for DCA purchases
+ */
+async function updateDCAPrice() {
+    const symbolSelect = document.getElementById('dcaSymbol');
+    if (!symbolSelect) return;
+    
+    const symbol = symbolSelect.value;
+    const priceDisplay = document.getElementById('dcaCurrentPrice');
+    
+    if (!priceDisplay) return;
+    
+    try {
+        // Fetch REAL-TIME price from API
+        const response = await fetch('/api/price/' + symbol);
+        const data = await response.json();
+        
+        if (data.success && data.price) {
+            priceDisplay.textContent = data.formatted || formatCurrency(data.price);
+            priceDisplay.style.color = '#10b981'; // Green color
+            
+            console.log(`✅ Updated DCA Bot price: ${symbol} = ${data.formatted}`);
+        } else {
+            priceDisplay.textContent = 'Error loading price';
+            priceDisplay.style.color = '#ef4444'; // Red color
+        }
+        
+    } catch (error) {
+        console.error('❌ Error fetching DCA price:', error);
+        priceDisplay.textContent = 'Error loading price';
+        priceDisplay.style.color = '#ef4444';
+    }
+}
+
+
+/**
+ * Update ALL price displays (Task 25)
+ * Called periodically to keep prices fresh
+ */
+async function updateAllPrices() {
+    console.log('🔄 Updating all prices...');
+    
+    await Promise.all([
+        updatePriceDisplay(),     // Buy/Sell form
+        updateGridPrice(),        // Grid Bot form
+        updateDCAPrice()          // DCA Bot form
+    ]);
+    
+    console.log('✅ All prices updated');
+}
+
+
+// ============================================
+// NOTIFICATION SYSTEM
+// ============================================
+
+/**
+ * Show a notification message to the user
+ * Only one notification is shown at a time - new notifications replace old ones
+ * @param {string} message - Message to display
+ * @param {string} type - Type of notification ('success', 'error', 'info')
+ */
+function showNotification(message, type = 'info') {
+    // Get or create container
+    let container = document.querySelector('.flash-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'flash-container';
+        const mainContent = document.querySelector('.main-content');
+        mainContent.insertBefore(container, mainContent.firstChild);
+    }
+    
+    // IMPORTANT: Remove all existing notifications first
+    // This ensures only one notification is shown at a time
+    const existingNotifications = container.querySelectorAll('.notification');
+    existingNotifications.forEach(notif => {
+        notif.remove();
+    });
+    
+    // Create new notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <span>${message}</span>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    // Add animation
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateY(-20px)';
+    
+    // Add to DOM
+    container.appendChild(notification);
+    
+    // Trigger animation
+    setTimeout(() => {
+        notification.style.transition = 'opacity 0.3s, transform 0.3s';
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateY(0)';
+    }, 10);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-20px)';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+
+// ============================================
+// PORTFOLIO FUNCTIONALITY
+// ============================================
+
+/**
+ * Load and display user's portfolio
+ */
+async function loadPortfolio() {
+    console.log('Loading portfolio...');
+    
+    try {
+        // Fetch portfolio from API
+        const response = await fetch('/api/portfolio');
+        const data = await response.json();
+        
+        if (data.success) {
+            // Display portfolio in table
+            displayPortfolio(data.portfolio, data.summary);
+        } else {
+            console.error('Failed to load portfolio:', data.error);
+        }
+        
+    } catch (error) {
+        console.error('Error loading portfolio:', error);
+    }
+}
+
+
+/**
+ * Display portfolio data in the table
+ * @param {Array} positions - Array of portfolio positions
+ * @param {Object} summary - Portfolio summary with totals
+ */
+function displayPortfolio(positions, summary) {
+    const tbody = document.getElementById('portfolioTableBody');
+    
+    if (!tbody) return;
+    
+    // Clear existing rows
+    tbody.innerHTML = '';
+    
+    if (!positions || positions.length === 0) {
+        // Show empty state
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <p>No positions yet. Start trading to build your portfolio!</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Add rows for each position
+    positions.forEach(position => {
+        const row = document.createElement('tr');
+        
+        // Determine profit/loss styling
+        const plClass = position.profit_loss >= 0 ? 'positive' : 'negative';
+        const plSign = position.profit_loss >= 0 ? '+' : '';
+        
+        row.innerHTML = `
+            <td><strong>${position.symbol}</strong></td>
+            <td>${position.quantity.toFixed(4)}</td>
+            <td>$${position.average_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td>$${position.current_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td><strong>$${position.total_value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+            <td class="${plClass}">${plSign}$${Math.abs(position.profit_loss).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="${plClass}">${plSign}${position.profit_loss_pct.toFixed(2)}%</td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+    
+    // Update portfolio value in stats if element exists
+    updatePortfolioStats(summary);
+}
+
+
+/**
+ * Update portfolio statistics display
+ * @param {Object} summary - Portfolio summary data
+ */
+function updatePortfolioStats(summary) {
+    // Update total portfolio value if stat card exists
+    const portfolioValueElements = document.querySelectorAll('.stat-card:nth-child(2) .stat-value');
+    if (portfolioValueElements.length > 0) {
+        portfolioValueElements[0].textContent = formatCurrency(summary.total_value);
+        
+        // Update change indicator
+        const changeElement = portfolioValueElements[0].parentElement.querySelector('.stat-change');
+        if (changeElement) {
+            const plSign = summary.total_profit_loss >= 0 ? '+' : '';
+            changeElement.textContent = `${plSign}${formatCurrency(summary.total_profit_loss)} (${plSign}${summary.total_profit_loss_pct.toFixed(2)}%)`;
+            changeElement.style.color = summary.total_profit_loss >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+        }
+    }
+}
+
+
+/**
+ * Update balance display after trade
+ * @param {number} newBalance - New balance amount
+ */
+function updateBalanceDisplay(newBalance) {
+    // Update balance in stat card
+    const balanceElements = document.querySelectorAll('.balance-card .stat-value');
+    if (balanceElements.length > 0) {
+        balanceElements[0].textContent = formatCurrency(newBalance);
+    }
+}
+
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+/**
+ * Format number as currency
+ * @param {number} value - Number to format
+ * @returns {string} Formatted currency string
+ */
+function formatCurrency(value) {
+    return '$' + value.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+
+/**
+ * Format datetime string for display (TASK 26)
+ * @param {string} dateTimeStr - ISO datetime string
+ * @returns {string} Formatted datetime string
+ */
+function formatDateTime(dateTimeStr) {
+    if (!dateTimeStr) return 'N/A';
+    
+    try {
+        const date = new Date(dateTimeStr);
+        
+        // Format as: Nov 13, 18:00
+        const options = {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        
+        return date.toLocaleString('en-US', options);
+    } catch (e) {
+        return dateTimeStr;  // Return original if parsing fails
+    }
+}
+
+
+/**
+ * Format number as percentage
+ * @param {number} value - Number to format
+ * @returns {string} Formatted percentage string
+ */
+function formatPercentage(value) {
+    const sign = value >= 0 ? '+' : '';
+    return sign + value.toFixed(2) + '%';
+}
+
+
+/**
+ * Format large numbers with K/M suffix
+ * @param {number} value - Number to format
+ * @returns {string} Formatted number string
+ */
+function formatNumber(value) {
+    if (value >= 1000000) {
+        return (value / 1000000).toFixed(2) + 'M';
+    } else if (value >= 1000) {
+        return (value / 1000).toFixed(2) + 'K';
+    }
+    return value.toFixed(2);
+}
+
+
+// ============================================
+// TECHNICAL INDICATORS FUNCTIONALITY
+// ============================================
+
+/**
+ * Load and display technical indicators
+ * Fetches SMA and RSI values from backend and updates the indicators card
+ */
+async function loadIndicators() {
+    console.log('📊 Loading technical indicators...');
+    
+    try {
+        // Get active symbol
+        const activeSymbol = getActiveSymbol();
+        console.log(`   Fetching indicators for ${activeSymbol}...`);
+        
+        // Fetch indicators from API
+        const response = await fetch('/api/indicators/' + activeSymbol);
+        console.log(`   API response status: ${response.status}`);
+        
+        const data = await response.json();
+        console.log('   Indicators data:', data);
+        
+        if (data.success) {
+            console.log('✅ Indicators loaded successfully');
+            displayIndicators(data);
+        } else {
+            console.error('❌ Failed to load indicators:', data.error);
+            // TASK 47: Show user-friendly error message
+            displayIndicatorsError(data.error || 'Failed to load indicators');
+        }
+    } catch (error) {
+        console.error('❌ Error loading indicators:', error);
+        // TASK 47: Show user-friendly error message
+        displayIndicatorsError('Network error or server unavailable. Please try again.');
+    }
+}
+
+/**
+ * Display technical indicators in the UI
+ * @param {Object} data - Indicators data from API
+ */
+function displayIndicators(data) {
+    console.log('📈 Displaying indicators...');
+    
+    // Update current price
+    const currentPriceEl = document.getElementById('currentPriceValue');
+    if (currentPriceEl && data.current_price) {
+        currentPriceEl.textContent = 
+            '$' + data.current_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        console.log(`   Current Price: $${data.current_price}`);
+    }
+    
+    // TASK 40: Update MA 9
+    const ema9El = document.getElementById('ma9Value');
+    if (ema9El) {
+        if (data.ma9) {
+            ema9El.textContent = 
+                '$' + data.ma9.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            console.log(`   MA 9: $${data.ma9}`);
+        } else {
+            ema9El.textContent = 'N/A';
+        }
+    }
+    
+    // TASK 40: Update MA 20
+    const ema20El = document.getElementById('ma20Value');
+    if (ema20El) {
+        if (data.ma20) {
+            ema20El.textContent = 
+                '$' + data.ma20.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            console.log(`   MA 20: $${data.ma20}`);
+        } else {
+            ema20El.textContent = 'N/A';
+        }
+    }
+    
+    // TASK 40: Update MA 50
+    const ema50El = document.getElementById('ma50Value');
+    if (ema50El) {
+        if (data.ma50) {
+            ema50El.textContent = 
+                '$' + data.ma50.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            console.log(`   MA 50: $${data.ma50}`);
+        } else {
+            ema50El.textContent = 'N/A';
+        }
+    }
+    
+    // TASK 40: Update MA 200
+    const ema200El = document.getElementById('ma200Value');
+    if (ema200El) {
+        if (data.ma200) {
+            ema200El.textContent = 
+                '$' + data.ma200.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            console.log(`   MA 200: $${data.ma200}`);
+        } else {
+            ema200El.textContent = 'N/A';
+        }
+    }
+    
+    // Update RSI 14 with color coding
+    const rsiElement = document.getElementById('rsi14Value');
+    const rsiSignalElement = document.getElementById('rsiSignal');
+    
+    if (rsiElement && data.rsi14 !== null && data.rsi14 !== undefined) {
+        const rsi = data.rsi14;
+        rsiElement.textContent = rsi.toFixed(1);
+        console.log(`   RSI 14: ${rsi.toFixed(1)}`);
+        
+        // Color code based on RSI value
+        if (rsi > 70) {
+            // Overbought - Red
+            rsiElement.style.color = 'var(--danger-color)';
+            if (rsiSignalElement) {
+                rsiSignalElement.textContent = '🔴 Overbought';
+                rsiSignalElement.style.color = 'var(--danger-color)';
+            }
+            console.log('   → Overbought signal');
+        } else if (rsi < 30) {
+            // Oversold - Green
+            rsiElement.style.color = 'var(--success-color)';
+            if (rsiSignalElement) {
+                rsiSignalElement.textContent = '🟢 Oversold';
+                rsiSignalElement.style.color = 'var(--success-color)';
+            }
+            console.log('   → Oversold signal');
+        } else {
+            // Neutral - Gray
+            rsiElement.style.color = 'var(--text-color)';
+            if (rsiSignalElement) {
+                rsiSignalElement.textContent = '⚪ Neutral';
+                rsiSignalElement.style.color = 'var(--text-secondary)';
+            }
+            console.log('   → Neutral signal');
+        }
+    } else if (rsiElement) {
+        rsiElement.textContent = 'N/A';
+        if (rsiSignalElement) {
+            rsiSignalElement.textContent = 'Momentum';
+        }
+    }
+    
+    // Update trend signal
+    const trendSignalElement = document.getElementById('trendSignal');
+    if (trendSignalElement && data.sma_trend) {
+        if (data.sma_trend === 'Bullish') {
+            trendSignalElement.textContent = '🟢 Bullish trend';
+            trendSignalElement.style.color = 'var(--success-color)';
+            console.log('   → Bullish trend (SMA20 > SMA50)');
+        } else {
+            trendSignalElement.textContent = '🔴 Bearish trend';
+            trendSignalElement.style.color = 'var(--danger-color)';
+            console.log('   → Bearish trend (SMA20 < SMA50)');
+        }
+    }
+    
+    // Update data freshness info (TASK 26)
+    updateIndicatorDataInfo(data);
+    
+    // TASK 42: Display EMA trading signals
+    displayEMASignals(data.ma_signals);
+    
+    console.log('✅ Indicators displayed successfully!');
+}
+
+
+/**
+ * Display EMA-based trading signals (TASK 42)
+ * Shows Golden/Death cross, overall signal, and confidence
+ */
+function displayEMASignals(signals) {
+    if (!signals) {
+        console.log('⚠️ No EMA signals data available');
+        return;
+    }
+    
+    console.log('⚡ Displaying EMA signals...', signals);
+    
+    // Overall Signal with color coding
+    const overallSignalEl = document.getElementById('emaOverallSignal');
+    if (overallSignalEl) {
+        overallSignalEl.textContent = signals.overall_signal;
+        
+        // Color code the signal
+        if (signals.overall_signal === 'BUY') {
+            overallSignalEl.style.color = '#10b981';  // Green
+            overallSignalEl.textContent = '🟢 BUY';
+        } else if (signals.overall_signal === 'SELL') {
+            overallSignalEl.style.color = '#ef4444';  // Red
+            overallSignalEl.textContent = '🔴 SELL';
+        } else {
+            overallSignalEl.style.color = '#94a3b8';  // Gray
+            overallSignalEl.textContent = '⚪ HOLD';
+        }
+        console.log(`   Overall Signal: ${signals.overall_signal}`);
+    }
+    
+    // Confidence
+    const confidenceEl = document.getElementById('emaConfidence');
+    if (confidenceEl) {
+        confidenceEl.textContent = `${signals.confidence}%`;
+        
+        // Color code based on confidence level
+        if (signals.confidence >= 70) {
+            confidenceEl.style.color = '#10b981';  // High confidence - green
+        } else if (signals.confidence >= 40) {
+            confidenceEl.style.color = '#f59e0b';  // Medium confidence - orange
+        } else {
+            confidenceEl.style.color = '#ef4444';  // Low confidence - red
+        }
+        console.log(`   Confidence: ${signals.confidence}%`);
+    }
+    
+    // Long-term Trend
+    const trendLabelEl = document.getElementById('emaTrendLabel');
+    if (trendLabelEl) {
+        if (signals.trend_label === 'long_term_uptrend') {
+            trendLabelEl.textContent = '📈 Uptrend';
+            trendLabelEl.style.color = '#10b981';
+        } else if (signals.trend_label === 'long_term_downtrend') {
+            trendLabelEl.textContent = '📉 Downtrend';
+            trendLabelEl.style.color = '#ef4444';
+        } else {
+            trendLabelEl.textContent = signals.trend_label;
+        }
+        console.log(`   Long-term: ${signals.trend_label}`);
+    }
+    
+    // Short-term
+    const shortTermEl = document.getElementById('emaShortTerm');
+    if (shortTermEl) {
+        if (signals.short_term === 'bullish') {
+            shortTermEl.textContent = '🔥 Bullish';
+            shortTermEl.style.color = '#10b981';
+        } else if (signals.short_term === 'bearish') {
+            shortTermEl.textContent = '❄️ Bearish';
+            shortTermEl.style.color = '#ef4444';
+        } else {
+            shortTermEl.textContent = signals.short_term;
+        }
+        console.log(`   Short-term: ${signals.short_term}`);
+    }
+    
+    // Golden/Death Cross Alert
+    const crossInfoEl = document.getElementById('emaCrossInfo');
+    if (crossInfoEl) {
+        if (signals.golden_cross) {
+            crossInfoEl.textContent = '🌟 GOLDEN CROSS! Major bullish signal (EMA50 crossed above EMA200)';
+            crossInfoEl.style.background = 'rgba(16, 185, 129, 0.3)';  // Green glow
+            crossInfoEl.style.display = 'block';
+            console.log('   🌟 GOLDEN CROSS detected!');
+        } else if (signals.death_cross) {
+            crossInfoEl.textContent = '💀 DEATH CROSS! Major bearish signal (EMA50 crossed below EMA200)';
+            crossInfoEl.style.background = 'rgba(239, 68, 68, 0.3)';  // Red glow
+            crossInfoEl.style.display = 'block';
+            console.log('   💀 DEATH CROSS detected!');
+        } else {
+            crossInfoEl.style.display = 'none';
+        }
+    }
+    
+    // Explanation
+    const explanationEl = document.getElementById('emaExplanation');
+    if (explanationEl && signals.explanation) {
+        explanationEl.textContent = signals.explanation;
+        console.log(`   Explanation: ${signals.explanation}`);
+    }
+    
+    console.log('✅ EMA signals displayed successfully!');
+}
+
+
+/**
+ * Update indicator data freshness display (TASK 26)
+ * Shows user that indicators are based on real-time exchange data
+ */
+function updateIndicatorDataInfo(data) {
+    const dataInfoDiv = document.getElementById('indicatorDataInfo');
+    if (!dataInfoDiv) return;
+    
+    // Update data info fields
+    if (data.timestamp) {
+        document.getElementById('indicatorLastUpdate').textContent = formatDateTime(data.timestamp);
+    }
+    
+    if (data.candles_used) {
+        document.getElementById('indicatorCandlesUsed').textContent = `${data.candles_used} candles`;
+    }
+    
+    if (data.data_source) {
+        document.getElementById('indicatorDataSource').textContent = data.data_source;
+    }
+    
+    // Show the data info div
+    dataInfoDiv.style.display = 'block';
+    
+    console.log('✅ Indicator data freshness info updated');
+}
+
+/**
+ * Display error state when indicators can't be loaded
+ */
+function displayIndicatorsError(errorMessage = null) {
+    // TASK 40: Update for EMA values
+    document.getElementById('ma9Value').textContent = 'N/A';
+    document.getElementById('ma20Value').textContent = 'N/A';
+    document.getElementById('ma50Value').textContent = 'N/A';
+    document.getElementById('ma200Value').textContent = 'N/A';
+    document.getElementById('rsi14Value').textContent = 'N/A';
+    document.getElementById('rsiSignal').textContent = 'Not enough data';
+    document.getElementById('trendSignal').textContent = 'Add more price history';
+    
+    // TASK 42: Clear EMA signals on error
+    document.getElementById('emaOverallSignal').textContent = '--';
+    document.getElementById('emaConfidence').textContent = '--';
+    document.getElementById('emaTrendLabel').textContent = '--';
+    document.getElementById('emaShortTerm').textContent = '--';
+    document.getElementById('emaExplanation').textContent = 'No data available';
+    
+    // TASK 47: Show user-friendly error banner
+    const indicatorsCard = document.querySelector('#indicators-card') || 
+                          document.querySelector('[data-section="indicators"]');
+    
+    if (indicatorsCard && errorMessage) {
+        // Check if banner already exists
+        let banner = indicatorsCard.querySelector('.data-error-banner');
+        
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.className = 'data-error-banner';
+            banner.style.cssText = `
+                background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+                color: white;
+                padding: 1rem;
+                margin-bottom: 1rem;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                line-height: 1.6;
+            `;
+            indicatorsCard.insertBefore(banner, indicatorsCard.firstChild);
+        }
+        
+        banner.innerHTML = `
+            <div style="display: flex; align-items: start; gap: 0.75rem;">
+                <span style="font-size: 1.5rem;">⚠️</span>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">Insufficient Price Data</div>
+                    <div style="opacity: 0.95;">${errorMessage || 'Not enough historical data to calculate indicators (need at least 200 candles for MA 200).'}</div>
+                    <button onclick="syncLatestPrices()" style="
+                        margin-top: 0.75rem;
+                        background: white;
+                        color: #ef4444;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-weight: 600;
+                    ">
+                        🔄 Sync Price History Now
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+
+// ============================================
+// GRID BOT FUNCTIONALITY
+// ============================================
+
+/**
+ * Toggle grid bot creation form visibility
+ */
+function toggleGridBotForm() {
+    console.log('🔄 Toggling grid bot form...');
+    
+    const form = document.getElementById('gridBotForm');
+    const button = document.getElementById('toggleGridBotForm');
+    
+    if (!form) {
+        console.error('❌ Grid bot form not found!');
+        return;
+    }
+    
+    if (!button) {
+        console.error('❌ Toggle button not found!');
+        return;
+    }
+    
+    if (form.style.display === 'none' || form.style.display === '') {
+        form.style.display = 'block';
+        button.textContent = '➖ Hide Form';
+        console.log('✅ Form shown');
+        
+        // Scroll to form
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        form.style.display = 'none';
+        button.textContent = '➕ Create New Bot';
+        console.log('✅ Form hidden');
+    }
+}
+
+/**
+ * Load all grid bots for the user
+ * Called on page load to display user's existing bots
+ */
+async function loadGridBots() {
+    console.log('Loading grid bots...');
+    
+    try {
+        const response = await fetch('/api/grid_bot/list');
+        const data = await response.json();
+        
+        if (data.success) {
+            displayGridBots(data.bots);
+        } else {
+            console.error('Failed to load grid bots:', data.error);
+        }
+    } catch (error) {
+        console.error('Error loading grid bots:', error);
+    }
+}
+
+/**
+ * Display grid bots in the table
+ * @param {Array} bots - Array of grid bot objects
+ */
+function displayGridBots(bots) {
+    const tbody = document.getElementById('gridBotsTableBody');
+    
+    if (!tbody) return;
+    
+    // Clear existing rows
+    tbody.innerHTML = '';
+    
+    if (!bots || bots.length === 0) {
+        // Show empty state
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-state">
+                    <div class="empty-icon">🤖</div>
+                    <p>No grid bots yet. Create one to automate your trading!</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Add row for each bot
+    bots.forEach(bot => {
+        const row = document.createElement('tr');
+        row.className = 'grid-bot-row';
+        row.style.cursor = 'pointer';
+        row.onclick = () => viewBotLevels(bot.id);
+        
+        const statusClass = bot.is_active === 1 ? 'status-active' : 'status-stopped';
+        const statusText = bot.is_active === 1 ? 'Active' : 'Stopped';
+        
+        row.innerHTML = `
+            <td><strong>#${bot.id}</strong></td>
+            <td><strong>${bot.symbol}</strong></td>
+            <td>$${bot.lower_price.toLocaleString()} - $${bot.upper_price.toLocaleString()}</td>
+            <td>${bot.grid_count}</td>
+            <td>$${bot.investment_amount.toLocaleString()}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td onclick="event.stopPropagation();" style="display: flex; gap: 0.5rem;">
+                ${bot.is_active === 1 ? 
+                    `<button class="btn btn-sm btn-danger" onclick="stopGridBot(${bot.id})" title="Stop bot">⏹️ Stop</button>` : 
+                    `<button class="btn btn-sm btn-danger" onclick="deleteGridBot(${bot.id})" title="Delete bot">🗑️ Delete</button>`
+                }
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+/**
+ * Handle grid bot creation form submission
+ * @param {Event} e - Form submit event
+ */
+async function handleCreateGridBot(e) {
+    e.preventDefault();
+    
+    console.log('🤖 Grid Bot Creation Started (Binance-Style)!');
+    console.log('📋 Form submitted, preparing to create grid bot...');
+    
+    // Get basic form values
+    const symbol = document.getElementById('gridSymbol').value;
+    const lowerPrice = parseFloat(document.getElementById('gridLowerPrice').value);
+    const upperPrice = parseFloat(document.getElementById('gridUpperPrice').value);
+    const gridCount = parseInt(document.getElementById('gridCount').value);
+    const investment = parseFloat(document.getElementById('gridInvestmentAmount').value);
+    
+    // Get Binance-style advanced parameters (TASK 38)
+    const gridType = document.getElementById('gridType').value;
+    const quoteCurrency = document.getElementById('gridQuoteCurrency').value;
+    const trailingUp = document.getElementById('gridTrailingUp').checked;
+    const sellAllOnStop = document.getElementById('gridSellAllOnStop').checked;
+    
+    // Get optional numeric fields (only if filled)
+    const gridTriggerPrice = document.getElementById('gridTriggerPrice').value.trim();
+    const takeProfitPct = document.getElementById('gridTakeProfitPct').value.trim();
+    const stopLossPrice = document.getElementById('gridStopLossPrice').value.trim();
+    
+    console.log('📊 Basic Form Values:');
+    console.log(`   Symbol: ${symbol}`);
+    console.log(`   Lower Price: $${lowerPrice}`);
+    console.log(`   Upper Price: $${upperPrice}`);
+    console.log(`   Grid Count: ${gridCount}`);
+    console.log(`   Grid Type: ${gridType}`);
+    console.log(`   Investment: $${investment} ${quoteCurrency}`);
+    
+    console.log('🔧 Advanced Parameters:');
+    console.log(`   Trailing Up: ${trailingUp}`);
+    console.log(`   Trigger Price: ${gridTriggerPrice || 'None'}`);
+    console.log(`   Take Profit: ${takeProfitPct || 'None'}%`);
+    console.log(`   Stop Loss: ${stopLossPrice || 'None'}`);
+    console.log(`   Sell All on Stop: ${sellAllOnStop}`);
+    
+    // Client-side validation
+    if (lowerPrice >= upperPrice) {
+        console.log('❌ Validation failed: Upper price must be greater than lower price');
+        showNotification('❌ Upper price must be greater than lower price', 'error');
+        return;
+    }
+    
+    if (gridCount < 2 || gridCount > 100) {
+        console.log('❌ Validation failed: Grid count must be between 2 and 100');
+        showNotification('❌ Grid count must be between 2 and 100', 'error');
+        return;
+    }
+    
+    if (investment <= 0) {
+        console.log('❌ Validation failed: Investment must be greater than 0');
+        showNotification('❌ Investment must be greater than 0', 'error');
+        return;
+    }
+    
+    console.log('✅ Validation passed!');
+    
+    // Find and disable submit button
+    const submitBtn = e.target.querySelector('button[type="submit"]') || 
+                      document.querySelector('#createGridBotForm button[type="submit"]');
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Creating...';
+        console.log('🔒 Submit button disabled');
+    }
+    
+    try {
+        // TASK 38: Send POST request with Binance-style parameters
+        console.log('📡 Sending POST request to /api/grid_bot/create...');
+        
+        // Build payload with basic parameters
+        const payload = {
+            symbol: symbol,
+            lower_price: lowerPrice,
+            upper_price: upperPrice,
+            grid_count: gridCount,
+            investment_amount: investment,
+            
+            // Binance-style advanced parameters
+            grid_type: gridType,
+            quote_currency: quoteCurrency,
+            trailing_up: trailingUp,
+            sell_all_on_stop: sellAllOnStop
+        };
+        
+        // Add optional numeric fields only if they have values
+        if (gridTriggerPrice) {
+            payload.grid_trigger_price = parseFloat(gridTriggerPrice);
+        }
+        if (takeProfitPct) {
+            payload.take_profit_pct = parseFloat(takeProfitPct);
+        }
+        if (stopLossPrice) {
+            payload.stop_loss_price = parseFloat(stopLossPrice);
+        }
+        
+        console.log('📦 Request payload:', JSON.stringify(payload, null, 2));
+        
+        const response = await fetch('/api/grid_bot/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        console.log(`📬 Response received: HTTP ${response.status}`);
+        
+        const data = await response.json();
+        console.log('📄 Response data:', data);
+        
+        if (data.success) {
+            console.log('✅ Grid bot created successfully!');
+            console.log(`   Bot ID: ${data.bot_id}`);
+            console.log(`   New Balance: $${data.new_balance}`);
+            
+            // Show success message with Binance-style config (TASK 38)
+            let message = `
+                ✅ Grid bot created!<br>
+                <br>
+                <strong>Configuration:</strong><br>
+                Bot ID: #${data.bot_id}<br>
+                Symbol: ${data.symbol}<br>
+                Range: $${data.lower_price.toLocaleString()} - $${data.upper_price.toLocaleString()}<br>
+                Grids: ${data.grid_count} levels (${data.grid_type})<br>
+                Investment: $${data.investment_amount.toLocaleString()} ${data.quote_currency}<br>
+                <br>
+                <strong>Advanced Features:</strong><br>
+            `;
+            
+            // Add enabled advanced features to message
+            if (data.trailing_up) {
+                message += `✓ Trailing Up enabled<br>`;
+            }
+            if (data.grid_trigger_price) {
+                message += `✓ Trigger Price: $${data.grid_trigger_price.toLocaleString()}<br>`;
+            }
+            if (data.take_profit_pct) {
+                message += `✓ Take Profit: ${data.take_profit_pct}%<br>`;
+            }
+            if (data.stop_loss_price) {
+                message += `✓ Stop Loss: $${data.stop_loss_price.toLocaleString()}<br>`;
+            }
+            if (!data.trailing_up && !data.grid_trigger_price && !data.take_profit_pct && !data.stop_loss_price) {
+                message += `None<br>`;
+            }
+            
+            message += `<br>New Balance: $${data.new_balance.toLocaleString()}`;
+            
+            showNotification(message, 'success');
+            
+            // Reset form
+            e.target.reset();
+            document.getElementById('gridPreview').innerHTML = '<p>Fill in the form to see grid preview</p>';
+            console.log('📝 Form reset');
+            
+            // Hide form
+            toggleGridBotForm();
+            console.log('🔽 Form hidden');
+            
+            // Reload bots table
+            console.log('🔄 Reloading grid bots table...');
+            loadGridBots();
+            
+            // Update balance display (if function exists)
+            if (typeof updateBalanceDisplay === 'function') {
+                updateBalanceDisplay(data.new_balance);
+            } else {
+                // Reload page to update balance
+                console.log('🔄 Reloading page to update balance...');
+                setTimeout(() => location.reload(), 2000);
+            }
+            
+        } else {
+            console.log('❌ Grid bot creation failed:', data.error);
+            // Show error
+            showNotification('❌ Failed to create bot: ' + data.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error creating grid bot:', error);
+        showNotification('❌ Error creating grid bot: ' + error.message, 'error');
+    } finally {
+        // Re-enable submit button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '🚀 Create Grid Bot';
+            console.log('🔓 Submit button re-enabled');
+        }
+    }
+}
+
+/**
+ * Stop a grid bot
+ * @param {number} botId - Grid bot ID
+ */
+async function stopGridBot(botId) {
+    console.log(`⏹️ Stopping grid bot #${botId}...`);
+    
+    if (!confirm('Are you sure you want to stop this grid bot? You can restart it later.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/grid_bot/${botId}/stop`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('✅ Grid bot stopped successfully');
+            showNotification('✅ Grid bot stopped successfully!', 'success');
+            
+            // Reload bots table
+            loadGridBots();
+        } else {
+            console.log('❌ Failed to stop grid bot:', data.error);
+            showNotification('❌ Failed to stop bot: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error stopping grid bot:', error);
+        showNotification('❌ Error stopping bot: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Delete a grid bot (only for stopped bots)
+ * @param {number} botId - Grid bot ID
+ */
+async function deleteGridBot(botId) {
+    console.log(`🗑️ Deleting grid bot #${botId}...`);
+    
+    if (!confirm('Are you sure you want to DELETE this grid bot? This action cannot be undone!')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/grid_bot/${botId}/delete`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('✅ Grid bot deleted successfully');
+            showNotification('✅ Grid bot deleted successfully!', 'success');
+            
+            // Reload bots table
+            loadGridBots();
+        } else {
+            console.log('❌ Failed to delete grid bot:', data.error);
+            showNotification('❌ Failed to delete bot: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error deleting grid bot:', error);
+        showNotification('❌ Error deleting bot: ' + error.message, 'error');
+    }
+}
+
+/**
+ * View grid levels for a specific bot
+ * @param {number} botId - Grid bot ID
+ */
+async function viewBotLevels(botId) {
+    console.log('Viewing levels for bot:', botId);
+    
+    try {
+        const response = await fetch(`/api/grid_bot/${botId}/levels`);
+        const data = await response.json();
+        
+        if (data.success) {
+            displayGridLevels(botId, data.levels, data.stats);
+        } else {
+            showNotification('❌ Failed to load bot levels: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error loading bot levels:', error);
+        showNotification('❌ Error loading levels: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Display grid levels in the detail table
+ * @param {number} botId - Bot ID
+ * @param {Array} levels - Array of level objects
+ * @param {Object} stats - Statistics about the bot
+ */
+function displayGridLevels(botId, levels, stats) {
+    // Show the levels section
+    const section = document.getElementById('gridLevelsSection');
+    section.style.display = 'block';
+    
+    // Set bot ID in header
+    document.getElementById('selectedBotId').textContent = botId;
+    
+    // Update statistics
+    document.getElementById('statTotalLevels').textContent = stats.total_levels;
+    document.getElementById('statBuyLevels').textContent = stats.buy_levels;
+    document.getElementById('statSellLevels').textContent = stats.sell_levels;
+    document.getElementById('statFilled').textContent = stats.filled_count;
+    document.getElementById('statPending').textContent = stats.pending_count;
+    
+    // Display levels in table
+    const tbody = document.getElementById('gridLevelsTableBody');
+    tbody.innerHTML = '';
+    
+    levels.forEach((level, index) => {
+        const row = document.createElement('tr');
+        
+        // Color code based on order type
+        const typeClass = level.order_type === 'BUY' ? 'buy-level' : 'sell-level';
+        const statusText = level.is_filled === 1 ? 'Filled ✅' : 'Pending ⏳';
+        const statusClass = level.is_filled === 1 ? 'filled' : 'pending';
+        
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td class="${typeClass}">$${level.level_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="${typeClass}"><strong>${level.order_type}</strong></td>
+            <td class="${statusClass}">${statusText}</td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+    
+    // Scroll to levels section
+    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/**
+ * Close grid levels detail view
+ */
+function closeGridLevels() {
+    const section = document.getElementById('gridLevelsSection');
+    section.style.display = 'none';
+}
+
+/**
+ * Stop a running grid bot
+ * @param {number} botId - Bot ID to stop
+ */
+async function stopGridBot(botId) {
+    if (!confirm('Are you sure you want to stop this grid bot? Your investment will be returned to your balance.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/grid_bot/${botId}/stop`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(`✅ Grid bot stopped! Returned: $${data.returned_investment.toLocaleString()}`, 'success');
+            
+            // Reload bots
+            loadGridBots();
+            
+            // Reload balance
+            location.reload();
+        } else {
+            showNotification('❌ Failed to stop bot: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error stopping bot:', error);
+        showNotification('❌ Error stopping bot: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Update grid preview based on form inputs
+ * Shows what the grid will look like before creation
+ */
+function updateGridPreview() {
+    const lowerPrice = parseFloat(document.getElementById('gridLowerPrice').value);
+    const upperPrice = parseFloat(document.getElementById('gridUpperPrice').value);
+    const gridCount = parseInt(document.getElementById('gridCount').value);
+    
+    const previewDiv = document.getElementById('gridPreview');
+    
+    if (!lowerPrice || !upperPrice || !gridCount || lowerPrice >= upperPrice || gridCount < 2) {
+        previewDiv.innerHTML = '<p>Fill in valid values to see preview</p>';
+        return;
+    }
+    
+    // Calculate price step
+    const priceStep = (upperPrice - lowerPrice) / (gridCount - 1);
+    
+    // Calculate how many buy vs sell levels
+    const buyCount = Math.floor(gridCount / 2);
+    const sellCount = gridCount - buyCount;
+    
+    previewDiv.innerHTML = `
+        <div class="preview-info">
+            <p><strong>Price Step:</strong> $${priceStep.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+            <p><strong>Buy Levels:</strong> <span class="buy-text">${buyCount}</span> (at lower prices)</p>
+            <p><strong>Sell Levels:</strong> <span class="sell-text">${sellCount}</span> (at higher prices)</p>
+            <p><em>Each level is $${priceStep.toLocaleString(undefined, {minimumFractionDigits: 2})} apart</em></p>
+        </div>
+    `;
+}
+
+
+// ============================================
+// DCA BOT FUNCTIONALITY (TASK 25)
+// ============================================
+
+/**
+ * Load DCA bots for the current user
+ */
+async function loadDCABots() {
+    console.log('📡 Loading DCA bots...');
+    
+    try {
+        const response = await fetch('/api/dca_bot/list');
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log(`✅ Loaded ${data.bots.length} DCA bots`);
+            displayDCABots(data.bots);
+        } else {
+            console.log('ℹ️ No DCA bots found');
+        }
+    } catch (error) {
+        console.error('❌ Error loading DCA bots:', error);
+    }
+}
+
+/**
+ * Display DCA bots in the table
+ */
+function displayDCABots(bots) {
+    const tbody = document.getElementById('dcaBotsTableBody');
+    if (!tbody) return;
+    
+    if (!bots || bots.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 2rem;">
+                    No DCA bots yet. Create one above!
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = bots.map(bot => `
+        <tr>
+            <td>#${bot.id}</td>
+            <td><strong>${bot.symbol}</strong></td>
+            <td>$${parseFloat(bot.amount_per_cycle).toFixed(2)}</td>
+            <td>${bot.interval_type}</td>
+            <td>${bot.total_cycles}</td>
+            <td>${bot.completed_cycles}</td>
+            <td>
+                <span class="status-badge status-${bot.status.toLowerCase()}">
+                    ${bot.status}
+                </span>
+            </td>
+            <td>
+                ${bot.status === 'active' ? `
+                    <button onclick="runDCACycle(${bot.id})" class="btn btn-sm btn-success">
+                        ▶️ Run Once
+                    </button>
+                    <button onclick="stopDCABot(${bot.id})" class="btn btn-sm btn-danger">
+                        ⏹️ Stop
+                    </button>
+                ` : '<span style="color: #6b7280;">Stopped</span>'}
+            </td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * Handle DCA bot creation form submission
+ * TASK 29: Enhanced with comprehensive logging and better error handling
+ */
+async function handleCreateDCABot(event) {
+    event.preventDefault();
+    
+    console.log('📅 DCA Bot Creation Started!');
+    console.log('📋 Form submitted, preparing to create DCA bot...');
+    
+    // Get form values
+    const symbol = document.getElementById('dcaSymbol').value;
+    const amount = parseFloat(document.getElementById('dcaAmount').value);
+    const interval = document.getElementById('dcaInterval').value;
+    const totalCycles = parseInt(document.getElementById('dcaTotalCycles').value);
+    const exchangeAccountId = document.getElementById('dcaExchangeAccount').value;
+    
+    console.log('📊 Form values collected:');
+    console.log(`   Symbol: ${symbol}`);
+    console.log(`   Amount per cycle: $${amount}`);
+    console.log(`   Interval: ${interval}`);
+    console.log(`   Total cycles: ${totalCycles}`);
+    console.log(`   Exchange account ID: ${exchangeAccountId}`);
+    
+    // Client-side validation
+    if (!symbol || !amount || !interval || !totalCycles || !exchangeAccountId) {
+        console.log('❌ Validation failed: Please fill in all fields');
+        showNotification('❌ Please fill in all fields', 'error');
+        return;
+    }
+    
+    if (amount < 1) {
+        console.log('❌ Validation failed: Amount must be at least $1');
+        showNotification('❌ Amount must be at least $1', 'error');
+        return;
+    }
+    
+    if (totalCycles < 1 || totalCycles > 1000) {
+        console.log('❌ Validation failed: Total cycles must be between 1 and 1000');
+        showNotification('❌ Total cycles must be between 1 and 1000', 'error');
+        return;
+    }
+    
+    console.log('✅ Validation passed!');
+    
+    // Find and disable submit button
+    // TASK 29: More reliable button selection
+    const submitBtn = event.target.querySelector('button[type="submit"]') || 
+                      document.querySelector('#createDCABotForm button[type="submit"]');
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Creating...';
+        console.log('🔒 Submit button disabled');
+    }
+    
+    try {
+        // TASK 29: Send POST request to create DCA bot
+        console.log('📡 Sending POST request to /api/dca_bot/create...');
+        
+        const payload = {
+            symbol: symbol,
+            amount_per_cycle: amount,
+            interval_type: interval,
+            total_cycles: totalCycles,
+            exchange_account_id: exchangeAccountId
+        };
+        
+        console.log('📦 Request payload:', JSON.stringify(payload, null, 2));
+        
+        const response = await fetch('/api/dca_bot/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        console.log(`📬 Response received: HTTP ${response.status}`);
+        
+        const data = await response.json();
+        console.log('📄 Response data:', data);
+        
+        if (data.success) {
+            console.log('✅ DCA bot created successfully!');
+            console.log(`   Bot ID: ${data.bot_id}`);
+            
+            // Show success message
+            const message = `
+                ✅ DCA bot created successfully!<br>
+                <br>
+                Bot ID: #${data.bot_id}<br>
+                Symbol: ${symbol}<br>
+                Amount per cycle: $${amount.toFixed(2)}<br>
+                Interval: ${interval}<br>
+                Total cycles: ${totalCycles}
+            `;
+            showNotification(message, 'success');
+            
+            // Clear form
+            document.getElementById('createDCABotForm').reset();
+            console.log('📝 Form reset');
+            
+            // Reload bots
+            console.log('🔄 Reloading DCA bots table...');
+            loadDCABots();
+        } else {
+            console.log('❌ DCA bot creation failed:', data.error);
+            showNotification('❌ ' + (data.error || 'Failed to create DCA bot'), 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error creating DCA bot:', error);
+        showNotification('❌ Error creating DCA bot: ' + error.message, 'error');
+    } finally {
+        // Re-enable submit button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '📅 Create DCA Bot';
+            console.log('🔓 Submit button re-enabled');
+        }
+    }
+}
+
+/**
+ * Run a single DCA cycle manually
+ * TASK 29: Enhanced with comprehensive logging
+ */
+async function runDCACycle(botId) {
+    console.log(`▶️ Running DCA cycle for bot #${botId}...`);
+    console.log('📡 Sending POST request to /api/dca_bot/${botId}/run_once...');
+    
+    try {
+        const response = await fetch(`/api/dca_bot/${botId}/run_once`, {
+            method: 'POST'
+        });
+        
+        console.log(`📬 Response received: HTTP ${response.status}`);
+        
+        const data = await response.json();
+        console.log('📄 Response data:', data);
+        
+        if (data.success) {
+            console.log('✅ DCA cycle completed successfully!');
+            console.log(`   Symbol: ${data.symbol}`);
+            console.log(`   Quantity bought: ${data.quantity_bought}`);
+            console.log(`   Price: $${data.execution_price}`);
+            console.log(`   Total spent: $${data.amount_spent}`);
+            
+            const message = `
+                ✅ DCA cycle completed!<br>
+                <br>
+                Symbol: ${data.symbol}<br>
+                Quantity: ${data.quantity_bought}<br>
+                Price: $${parseFloat(data.execution_price).toFixed(2)}<br>
+                Total: $${parseFloat(data.amount_spent).toFixed(2)}
+            `;
+            showNotification(message, 'success');
+            
+            // Reload bots and balance
+            console.log('🔄 Reloading DCA bots table...');
+            loadDCABots();
+            
+            // Reload page to update balance
+            setTimeout(() => {
+                console.log('🔄 Reloading page to update balance...');
+                location.reload();
+            }, 2000);
+        } else {
+            console.log('❌ DCA cycle failed:', data.error);
+            showNotification('❌ ' + (data.error || 'Failed to run DCA cycle'), 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error running DCA cycle:', error);
+        showNotification('❌ Error running DCA cycle: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Stop a DCA bot
+ * TASK 29: Enhanced with comprehensive logging
+ */
+async function stopDCABot(botId) {
+    console.log(`⏹️ Attempting to stop DCA bot #${botId}...`);
+    
+    if (!confirm('Are you sure you want to stop this DCA bot? Future cycles will not execute.')) {
+        console.log('   User cancelled stop operation');
+        return;
+    }
+    
+    console.log('📡 Sending POST request to /api/dca_bot/${botId}/stop...');
+    
+    try {
+        const response = await fetch(`/api/dca_bot/${botId}/stop`, {
+            method: 'POST'
+        });
+        
+        console.log(`📬 Response received: HTTP ${response.status}`);
+        
+        const data = await response.json();
+        console.log('📄 Response data:', data);
+        
+        if (data.success) {
+            console.log('✅ DCA bot stopped successfully!');
+            showNotification('✅ DCA bot stopped!', 'success');
+            
+            // Reload bots
+            console.log('🔄 Reloading DCA bots table...');
+            loadDCABots();
+        } else {
+            console.log('❌ Failed to stop DCA bot:', data.error);
+            showNotification('❌ ' + (data.error || 'Failed to stop DCA bot'), 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error stopping DCA bot:', error);
+        showNotification('❌ Error stopping DCA bot: ' + error.message, 'error');
+    }
+}
+
+
+// ============================================
+// LIVE EXCHANGE PORTFOLIO FUNCTIONALITY
+// ============================================
+
+/**
+ * Load exchange accounts into the selector dropdown
+ * Populates the dropdown with user's linked exchange accounts
+ */
+async function loadExchangeAccounts() {
+    console.log('📡 Loading exchange accounts for dropdowns...');
+    
+    const select = document.getElementById('exchangeAccountSelect');
+    const dcaSelect = document.getElementById('dcaExchangeAccount'); // Task 25
+    
+    if (!select && !dcaSelect) {
+        console.log('   Exchange selectors not found (normal if not on dashboard)');
+        return;
+    }
+    
+    try {
+        // Fetch user's exchange accounts from API
+        const response = await fetch('/api/exchange/accounts');
+        const data = await response.json();
+        
+        if (data.success && data.accounts) {
+            console.log(`✅ Found ${data.count} exchange account(s)`);
+            
+            // Populate main exchange selector (for Live Portfolio)
+            if (select) {
+                select.innerHTML = '<option value="">Select exchange account...</option>';
+                
+                data.accounts.forEach(account => {
+                    const option = document.createElement('option');
+                    option.value = account.id;
+                    
+                    const mode = account.is_testnet === 1 ? 'Testnet' : 'Live';
+                    option.textContent = `${account.account_label} (${account.exchange_name.toUpperCase()} - ${mode})`;
+                    
+                    select.appendChild(option);
+                });
+            }
+            
+            // Populate DCA bot exchange selector (Task 25)
+            if (dcaSelect) {
+                dcaSelect.innerHTML = '<option value="">Select exchange account...</option>';
+                
+                data.accounts.forEach(account => {
+                    const option = document.createElement('option');
+                    option.value = account.id;
+                    
+                    const mode = account.is_testnet === 1 ? 'Testnet' : 'Live';
+                    option.textContent = `${account.account_label} (${account.exchange_name.toUpperCase()} - ${mode})`;
+                    
+                    dcaSelect.appendChild(option);
+                });
+            }
+            
+            if (data.count === 0) {
+                console.log('ℹ️ No exchange accounts linked. Visit /exchanges to add one.');
+            }
+        } else {
+            console.log('ℹ️ No exchange accounts found');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading exchange accounts:', error);
+    }
+}
+
+/**
+ * Handle exchange account selection change
+ */
+async function onExchangeAccountChange() {
+    const select = document.getElementById('exchangeAccountSelect');
+    const accountId = select.value;
+    
+    const refreshBtn = document.getElementById('refreshExchangeBtn');
+    const emptyState = document.getElementById('exchangeEmptyState');
+    const portfolioDisplay = document.getElementById('exchangePortfolioDisplay');
+    const aiTradeBtn = document.getElementById('aiTradeBtn');
+    
+    if (!accountId) {
+        // No account selected - show empty state
+        emptyState.style.display = 'block';
+        portfolioDisplay.style.display = 'none';
+        refreshBtn.disabled = true;
+        
+        // Hide AI trade button
+        if (aiTradeBtn) {
+            aiTradeBtn.style.display = 'none';
+        }
+        return;
+    }
+    
+    // Enable refresh button
+    refreshBtn.disabled = false;
+    
+    // Show AI trade button if prediction exists
+    if (aiTradeBtn) {
+        aiTradeBtn.style.display = 'inline-block';
+    }
+    
+    // Load portfolio for selected account
+    loadExchangePortfolio(accountId);
+}
+
+/**
+ * Load portfolio from exchange API
+ * @param {number} accountId - Exchange account ID
+ */
+async function loadExchangePortfolio(accountId) {
+    console.log(`📊 Loading portfolio for exchange account ${accountId}...`);
+    
+    const loadingDiv = document.getElementById('exchangeLoading');
+    const emptyState = document.getElementById('exchangeEmptyState');
+    const portfolioDisplay = document.getElementById('exchangePortfolioDisplay');
+    
+    // Show loading state
+    emptyState.style.display = 'none';
+    portfolioDisplay.style.display = 'none';
+    loadingDiv.style.display = 'block';
+    
+    try {
+        // Fetch portfolio from exchange via API
+        // ⚠️ This makes a REAL API call to the exchange!
+        const response = await fetch(`/api/exchange/${accountId}/portfolio`);
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('✅ Exchange portfolio loaded');
+            console.log(`   Exchange: ${data.exchange}`);
+            console.log(`   Balances: ${data.balance_count}`);
+            console.log(`   Positions: ${data.position_count}`);
+            
+            displayExchangePortfolio(data);
+        } else {
+            throw new Error(data.error || 'Failed to fetch portfolio');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading exchange portfolio:', error);
+        
+        // Show error message
+        emptyState.innerHTML = `
+            <div class="empty-icon">❌</div>
+            <p><strong>Failed to fetch data from exchange</strong></p>
+            <p>${error.message}</p>
+            <p style="font-size: 0.875rem; margin-top: 1rem;">
+                Possible reasons:<br>
+                • Invalid API credentials<br>
+                • Exchange API is down<br>
+                • Network connection issue<br>
+                • Rate limit exceeded
+            </p>
+        `;
+        emptyState.style.display = 'block';
+        
+        showNotification('❌ Failed to fetch exchange data: ' + error.message, 'error');
+    } finally {
+        loadingDiv.style.display = 'none';
+    }
+}
+
+/**
+ * Display exchange portfolio data in the UI
+ * @param {Object} data - Portfolio data from API
+ */
+function displayExchangePortfolio(data) {
+    const portfolioDisplay = document.getElementById('exchangePortfolioDisplay');
+    portfolioDisplay.style.display = 'block';
+    
+    // Update exchange info
+    const badge = document.getElementById('exchangeBadge');
+    badge.className = `exchange-badge exchange-${data.exchange}`;
+    badge.textContent = data.exchange.toUpperCase();
+    
+    document.getElementById('exchangeLabel').textContent = data.account_label;
+    
+    const modeBadge = document.getElementById('exchangeMode');
+    if (data.is_testnet) {
+        modeBadge.className = 'mode-badge testnet';
+        modeBadge.textContent = 'Testnet 🧪';
+    } else {
+        modeBadge.className = 'mode-badge live';
+        modeBadge.textContent = 'Live 🔴';
+    }
+    
+    // Display balances
+    const balancesBody = document.getElementById('exchangeBalancesBody');
+    balancesBody.innerHTML = '';
+    
+    if (data.balances && data.balances.length > 0) {
+        data.balances.forEach(balance => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${balance.asset}</strong></td>
+                <td>${balance.free.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 8})}</td>
+                <td>${balance.used.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 8})}</td>
+                <td><strong>${balance.total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 8})}</strong></td>
+            `;
+            balancesBody.appendChild(row);
+        });
+    } else {
+        balancesBody.innerHTML = `
+            <tr>
+                <td colspan="4" class="empty-state">
+                    <p>No balances found. Account may be empty.</p>
+                </td>
+            </tr>
+        `;
+    }
+    
+    // Display positions (if any)
+    const positionsSection = document.getElementById('positionsSection');
+    const positionsBody = document.getElementById('exchangePositionsBody');
+    
+    if (data.positions && data.positions.length > 0) {
+        positionsSection.style.display = 'block';
+        positionsBody.innerHTML = '';
+        
+        data.positions.forEach(position => {
+            const row = document.createElement('tr');
+            const pnlClass = position.unrealized_pnl >= 0 ? 'positive' : 'negative';
+            const pnlSign = position.unrealized_pnl >= 0 ? '+' : '';
+            
+            row.innerHTML = `
+                <td><strong>${position.symbol}</strong></td>
+                <td>${position.side}</td>
+                <td>${position.size}</td>
+                <td>$${position.entry_price.toLocaleString()}</td>
+                <td>$${position.current_price.toLocaleString()}</td>
+                <td class="${pnlClass}">${pnlSign}$${position.unrealized_pnl.toLocaleString()}</td>
+                <td>${position.leverage}x</td>
+            `;
+            positionsBody.appendChild(row);
+        });
+    } else {
+        positionsSection.style.display = 'none';
+    }
+    
+    showNotification(`✅ Loaded ${data.balance_count} balance(s) from ${data.exchange}`, 'success');
+}
+
+/**
+ * Refresh exchange portfolio (reload current account)
+ */
+function refreshExchangePortfolio() {
+    const select = document.getElementById('exchangeAccountSelect');
+    const accountId = select.value;
+    
+    if (accountId) {
+        loadExchangePortfolio(accountId);
+    }
+}
+
+
+// ============================================
+// AI-DRIVEN TRADING FUNCTIONALITY
+// ============================================
+
+/**
+ * Execute AI-driven trade
+ * This feature connects AI predictions to real order execution!
+ * 
+ * How it works:
+ * 1. Gets latest AI prediction (UP or DOWN)
+ * 2. UP = Buy signal, DOWN = Sell signal
+ * 3. Executes order via selected exchange account
+ * 4. Mode: SIMULATION (safe) or LIVE (real money)
+ */
+async function executeAITrade() {
+    console.log('🤖 Executing AI-driven trade...');
+    
+    // Get exchange account
+    const exchangeSelect = document.getElementById('exchangeAccountSelect');
+    const exchangeAccountId = exchangeSelect ? exchangeSelect.value : null;
+    
+    if (!exchangeAccountId) {
+        showNotification('❌ Please select an exchange account first', 'error');
+        return;
+    }
+    
+    // Get active symbol
+    const symbol = getActiveSymbol();
+    
+    // Prompt for amount
+    const amount = prompt('Enter amount to trade (e.g., 0.01 for BTC):', '0.01');
+    
+    if (!amount || parseFloat(amount) <= 0) {
+        showNotification('❌ Invalid amount', 'error');
+        return;
+    }
+    
+    // Confirm action
+    if (!confirm(`Execute AI-driven trade?\n\nSymbol: ${symbol}\nAmount: ${amount}\n\nThe AI will predict UP/DOWN and execute accordingly.\n\n⚠️ Mode: SIMULATION (safe, no real money)`)) {
+        return;
+    }
+    
+    const aiTradeBtn = document.getElementById('aiTradeBtn');
+    if (aiTradeBtn) {
+        aiTradeBtn.disabled = true;
+        aiTradeBtn.textContent = '⏳ Executing...';
+    }
+    
+    try {
+        // Call AI trade API
+        const response = await fetch('/api/ai_trade', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                exchange_account_id: parseInt(exchangeAccountId),
+                symbol: symbol,
+                amount: parseFloat(amount)
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show success with prediction details
+            const message = `
+                ✅ AI Trade ${data.mode}!<br>
+                <br>
+                <strong>AI Prediction:</strong><br>
+                Direction: ${data.prediction.direction}<br>
+                Confidence: ${data.prediction.confidence}%<br>
+                <br>
+                <strong>Order:</strong><br>
+                ${data.message}<br>
+                <br>
+                <em>Mode: ${data.mode === 'SIMULATED' ? 'SIMULATION (No real money used)' : 'LIVE (Real trade executed!)'}</em>
+            `;
+            showNotification(message, 'success');
+            
+            console.log('✅ AI trade result:', data);
+        } else {
+            showNotification('❌ AI trade failed: ' + data.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error executing AI trade:', error);
+        showNotification('❌ Error: ' + error.message, 'error');
+    } finally {
+        if (aiTradeBtn) {
+            aiTradeBtn.disabled = false;
+            aiTradeBtn.textContent = '⚡ Execute AI Trade';
+        }
+    }
+}
+
+
+// ============================================
+// PRICE SYNCHRONIZATION
+// ============================================
+
+/**
+ * Sync latest prices from exchange into database
+ * 
+ * REPLACES DUMMY DATA WITH REAL MARKET CANDLES!
+ * 
+ * What this does:
+ * 1. Fetches real OHLCV data from Binance
+ * 2. Stores in price_history table
+ * 3. Technical indicators auto-update with real data
+ * 4. Trading prices become real-time
+ */
+async function syncLatestPrices() {
+    console.log('⬇️ Syncing latest prices from exchange...');
+    
+    const button = document.getElementById('syncPricesBtn');
+    
+    if (button) {
+        button.disabled = true;
+        button.textContent = '⏳ Syncing...';
+    }
+    
+    try {
+        // Get active symbol
+        const activeSymbol = getActiveSymbol();
+        
+        // Call sync API
+        const response = await fetch('/api/prices/sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                symbol: activeSymbol,
+                timeframe: '1h',
+                limit: 200
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const message = `
+                ✅ Price Data Synced!<br>
+                <br>
+                Symbol: ${data.symbol}<br>
+                Fetched: ${data.fetched} candles from ${data.exchange}<br>
+                Inserted: ${data.inserted} new candles<br>
+                Duplicates: ${data.duplicates} skipped<br>
+                Latest Price: $${data.latest_price.toLocaleString()}<br>
+                <br>
+                <strong>Technical indicators now use REAL market data!</strong>
+            `;
+            showNotification(message, 'success');
+            
+            // Reload indicators to show updated values
+            setTimeout(() => {
+                loadIndicators();
+            }, 1000);
+            
+            console.log('✅ Price sync complete');
+            console.log(`   Inserted: ${data.inserted} new candles`);
+            console.log(`   Latest price: $${data.latest_price}`);
+        } else {
+            showNotification('❌ Failed to sync prices: ' + data.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error syncing prices:', error);
+        showNotification('❌ Error: ' + error.message, 'error');
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = '⬇️ Sync Latest Prices';
+        }
+    }
+}
+
+
+// ============================================
+// WINDOW RESIZE HANDLER
+// ============================================
+
+/**
+ * Redraw chart when window is resized
+ */
+window.addEventListener('resize', function() {
+    // Debounce resize event
+    clearTimeout(window.resizeTimer);
+    window.resizeTimer = setTimeout(function() {
+        drawPriceChart();
+    }, 250);
+});
+
+
+// ============================================
+// CONSOLE HELPER
+// ============================================
+
+console.log(`
+╔══════════════════════════════════════════╗
+║   AI Trading Assistant Dashboard         ║
+║   Dashboard JavaScript Loaded            ║
+║   Version: 1.0                           ║
+╚══════════════════════════════════════════╝
+
+Available functions:
+- getNewPrediction()     : Fetch new AI prediction
+- drawPriceChart()       : Redraw price chart
+- handleTrade(side)      : Execute trade (BUY/SELL)
+- showNotification(msg)  : Display notification
+
+Ready to trade! 📈
+`);
+
+
+// ============================================
+// GRID BOT STRATEGY MODES (AI / MANUAL / POPULAR)
+// ============================================
+
+/**
+ * Switch Grid Bot creation mode
+ * @param {string} mode - Mode to switch to ('ai', 'manual', 'popular')
+ */
+function switchGridMode(mode) {
+    console.log(`🔄 Switching Grid Bot mode to: ${mode}`);
+    
+    // Update tab active states
+    const tabs = document.querySelectorAll('.strategy-tab');
+    tabs.forEach(tab => {
+        const tabMode = tab.getAttribute('data-mode');
+        if (tabMode === mode) {
+            tab.classList.add('strategy-tab-active');
+        } else {
+            tab.classList.remove('strategy-tab-active');
+        }
+    });
+    
+    // Show/hide sections based on mode
+    const aiSection = document.getElementById('gridAISection');
+    const manualSection = document.getElementById('gridManualSection');
+    
+    if (mode === 'ai') {
+        aiSection.style.display = 'block';
+        manualSection.style.display = 'none';
+    } else {
+        aiSection.style.display = 'none';
+        manualSection.style.display = 'block';
+        
+        if (mode === 'popular') {
+            // Show popular presets
+            showNotification('⭐ Popular presets coming soon!', 'info');
+        }
+    }
+}
+
+/**
+ * Generate AI-powered Grid Bot parameters
+ */
+async function generateAIGridParameters() {
+    console.log('🤖 Generating AI Grid parameters...');
+    
+    showNotification('🤖 Analyzing market conditions...', 'info');
+    
+    try {
+        // In a real implementation, this would call an AI endpoint
+        // For now, we'll use market data to suggest parameters
+        const symbol = document.getElementById('gridSymbol').value;
+        
+        // Get current price
+        const priceResponse = await fetch(`/api/price/${symbol}`);
+        const priceData = await priceResponse.json();
+        
+        if (priceData.success) {
+            const currentPrice = priceData.price;
+            
+            // Calculate suggested range (+/- 10%)
+            const lowerPrice = (currentPrice * 0.90).toFixed(2);
+            const upperPrice = (currentPrice * 1.10).toFixed(2);
+            
+            // Fill in the form
+            document.getElementById('gridLowerPrice').value = lowerPrice;
+            document.getElementById('gridUpperPrice').value = upperPrice;
+            document.getElementById('gridCount').value = '10';
+            document.getElementById('gridInvestment').value = '1000';
+            
+            // Switch to manual mode to show the filled form
+            switchGridMode('manual');
+            
+            showNotification('✅ AI parameters generated! Review and adjust as needed.', 'success');
+        } else {
+            showNotification('❌ Failed to fetch price data', 'error');
+        }
+    } catch (error) {
+        console.error('Error generating AI parameters:', error);
+        showNotification('❌ Error generating parameters', 'error');
+    }
+}
+
+/**
+ * Auto-fill Grid Bot price range based on current price
+ */
+async function autoFillGridPrice() {
+    console.log('🔄 Auto-filling Grid price range...');
+    
+    try {
+        const symbol = document.getElementById('gridSymbol').value;
+        
+        // Get current price
+        const response = await fetch(`/api/price/${symbol}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const currentPrice = data.price;
+            
+            // Suggest range: -5% to +5%
+            const lowerPrice = (currentPrice * 0.95).toFixed(2);
+            const upperPrice = (currentPrice * 1.05).toFixed(2);
+            
+            document.getElementById('gridLowerPrice').value = lowerPrice;
+            document.getElementById('gridUpperPrice').value = upperPrice;
+            
+            showNotification('✅ Price range auto-filled!', 'success');
+        } else {
+            showNotification('❌ Failed to fetch price', 'error');
+        }
+    } catch (error) {
+        console.error('Error auto-filling price:', error);
+        showNotification('❌ Error auto-filling price', 'error');
+    }
+}
+
+/**
+ * Toggle Grid Bot advanced options
+ */
+function toggleGridAdvanced() {
+    const options = document.getElementById('gridAdvancedOptions');
+    const icon = document.getElementById('gridAdvancedIcon');
+    
+    if (options.style.display === 'none') {
+        options.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        options.style.display = 'none';
+        icon.textContent = '▶';
+    }
+}
+
+/**
+ * Recommend DCA parameters based on market conditions
+ */
+async function recommendDCAParameters() {
+    console.log('✨ Recommending DCA parameters...');
+    
+    showNotification('✨ Analyzing market for optimal DCA strategy...', 'info');
+    
+    try {
+        const symbol = document.getElementById('dcaSymbol').value;
+        
+        // Get current price
+        const response = await fetch(`/api/price/${symbol}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const currentPrice = data.price;
+            
+            // Recommend parameters based on price
+            let recommendedAmount, recommendedCycles, recommendedInterval;
+            
+            if (currentPrice > 30000) {
+                // High-value asset (like BTC)
+                recommendedAmount = 100;
+                recommendedCycles = 10;
+                recommendedInterval = 'daily';
+            } else if (currentPrice > 1000) {
+                // Medium-value asset (like ETH)
+                recommendedAmount = 50;
+                recommendedCycles = 15;
+                recommendedInterval = 'daily';
+            } else {
+                // Lower-value asset
+                recommendedAmount = 25;
+                recommendedCycles = 20;
+                recommendedInterval = 'weekly';
+            }
+            
+            // Fill in the form
+            document.getElementById('dcaAmount').value = recommendedAmount;
+            document.getElementById('dcaTotalCycles').value = recommendedCycles;
+            document.getElementById('dcaInterval').value = recommendedInterval;
+            
+            const totalInvestment = recommendedAmount * recommendedCycles;
+            
+            showNotification(
+                `✅ Recommended: $${recommendedAmount}/${recommendedInterval} for ${recommendedCycles} cycles (Total: $${totalInvestment})`, 
+                'success'
+            );
+        } else {
+            showNotification('❌ Failed to fetch price data', 'error');
+        }
+    } catch (error) {
+        console.error('Error recommending DCA parameters:', error);
+        showNotification('❌ Error generating recommendations', 'error');
+    }
+}
+
+// ============================================
+// TASK 30: TABBED NAVIGATION FOR TOOLS & ANALYTICS
+// ============================================
+
+/**
+ * Initialize the tools navigation system
+ * Sets up click handlers for tab switching
+ */
+function initializeToolsNavigation() {
+    console.log('🔧 Initializing tools navigation...');
+    
+    // Get all navigation items and tool sections
+    const navItems = document.querySelectorAll('#toolsNav li');
+    const toolSections = document.querySelectorAll('.tool-section');
+    
+    if (!navItems.length || !toolSections.length) {
+        console.log('⚠️ Navigation elements not found');
+        return;
+    }
+    
+    console.log(`   Found ${navItems.length} navigation items`);
+    console.log(`   Found ${toolSections.length} tool sections`);
+    
+    // Add click handler to each navigation item
+    navItems.forEach(navItem => {
+        navItem.addEventListener('click', function() {
+            const targetSection = this.getAttribute('data-section');
+            console.log(`📂 Switching to section: ${targetSection}`);
+            
+            switchToolSection(targetSection);
+        });
+    });
+    
+    // Verify initial active section
+    const activeNav = document.querySelector('#toolsNav li.nav-active');
+    const activeSection = document.querySelector('.tool-section-active');
+    
+    if (activeNav && activeSection) {
+        console.log(`✅ Initial section: ${activeSection.id}`);
+    } else {
+        console.log('⚠️ No active section found, activating Grid Bots by default');
+        switchToolSection('gridBotsSection');
+    }
+    
+    console.log('✅ Tools navigation initialized');
+}
+
+/**
+ * Switch to a specific tool section
+ * @param {string} sectionId - ID of the section to activate
+ */
+function switchToolSection(sectionId) {
+    // Get all navigation items and sections
+    const navItems = document.querySelectorAll('#toolsNav li');
+    const toolSections = document.querySelectorAll('.tool-section');
+    
+    // Remove active class from all nav items
+    navItems.forEach(item => {
+        item.classList.remove('nav-active');
+    });
+    
+    // Remove active class from all sections
+    toolSections.forEach(section => {
+        section.classList.remove('tool-section-active');
+    });
+    
+    // Add active class to clicked nav item
+    const clickedNav = document.querySelector(`#toolsNav li[data-section="${sectionId}"]`);
+    if (clickedNav) {
+        clickedNav.classList.add('nav-active');
+    }
+    
+    // Show the target section
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('tool-section-active');
+        console.log(`   ✅ Activated section: ${sectionId}`);
+        
+        // Scroll to top of the section smoothly
+        targetSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        console.log(`   ❌ Section not found: ${sectionId}`);
+    }
+}
+
+/**
+ * Handle profile form submission (placeholder)
+ * TASK 30: Profile update functionality - to be implemented
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const profileForm = document.getElementById('profileSettingsForm');
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('👤 Profile update requested (placeholder)');
+            
+            const username = document.getElementById('profileUsername').value;
+            const email = document.getElementById('profileEmail').value;
+            const password = document.getElementById('profilePassword').value;
+            const passwordConfirm = document.getElementById('profilePasswordConfirm').value;
+            
+            console.log('Profile data:', { username, email });
+            
+            // Validation
+            if (password && password !== passwordConfirm) {
+                showNotification('❌ Passwords do not match', 'error');
+                return;
+            }
+            
+            if (password && password.length < 8) {
+                showNotification('❌ Password must be at least 8 characters', 'error');
+                return;
+            }
+            
+            // Placeholder response
+            showNotification('ℹ️ Profile update feature coming soon! This will save your settings.', 'info');
+            console.log('Note: Profile update backend not yet implemented');
+        });
+    }
+    
+    // Subscribe button handler
+    const subscribeBtn = document.getElementById('subscribeBtn');
+    if (subscribeBtn) {
+        subscribeBtn.addEventListener('click', function() {
+            console.log('💳 Subscription requested (placeholder)');
+            showNotification('💳 Subscription feature coming soon! Payment integration will be added in a future update.', 'info');
+        });
+    }
+});
+
+
+// ============================================
+// MARKET DATA FUNCTIONALITY (TASK 37)
+// ============================================
+
+/**
+ * Track which sections have been loaded to avoid redundant API calls
+ * This improves performance by only fetching data once
+ */
+const loadedSections = {
+    fearGreed: false,
+    marketOverview: false
+};
+
+/**
+ * Override switchToolSection to load data when sections are activated
+ * This ensures data is fetched when user navigates to Fear & Greed or Market Overview
+ */
+const originalSwitchToolSection = switchToolSection;
+switchToolSection = function(sectionId) {
+    // Call original function first
+    originalSwitchToolSection(sectionId);
+    
+    // Load data for specific sections on first activation
+    if (sectionId === 'fearGreedSection' && !loadedSections.fearGreed) {
+        console.log('📊 Loading Fear & Greed Index for first time...');
+        loadFearGreed();
+        loadedSections.fearGreed = true;
+    } else if (sectionId === 'marketOverviewSection' && !loadedSections.marketOverview) {
+        console.log('🌐 Loading Market Overview for first time...');
+        loadTopCoins();
+        loadedSections.marketOverview = true;
+    }
+};
+
+/**
+ * Load Fear & Greed Index
+ * Fetches crypto market sentiment indicator (0-100 scale)
+ * 
+ * What is Fear & Greed Index?
+ * - Measures market sentiment from Extreme Fear (0) to Extreme Greed (100)
+ * - Used as a contrarian indicator for trading decisions
+ * - Updates daily
+ * - FREE API from Alternative.me (no key needed)
+ */
+async function loadFearGreed() {
+    console.log('😱 Loading Fear & Greed Index...');
+    
+    const cardDiv = document.getElementById('fearGreedCard');
+    
+    if (!cardDiv) {
+        console.log('❌ Fear & Greed card not found');
+        return;
+    }
+    
+    // Show loading state
+    cardDiv.innerHTML = `
+        <div class="loading-spinner" style="text-align: center; padding: 2rem;">
+            <div class="spinner"></div>
+            <p>Loading Fear & Greed Index...</p>
+        </div>
+    `;
+    
+    try {
+        // Fetch Fear & Greed Index from API
+        const response = await fetch('/api/fear_greed');
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log(`✅ Fear & Greed: ${data.value}/100 (${data.value_classification})`);
+            
+            // Display the Fear & Greed Index
+            displayFearGreed(data);
+        } else {
+            throw new Error(data.error || 'Failed to load Fear & Greed Index');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading Fear & Greed Index:', error);
+        
+        // Show error state
+        cardDiv.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: #ef4444;">
+                <p><strong>❌ Failed to load Fear & Greed Index</strong></p>
+                <p>${error.message}</p>
+                <p style="margin-top: 1rem;">
+                    <button onclick="loadFearGreed()" class="btn btn-secondary btn-sm">🔄 Try Again</button>
+                </p>
+            </div>
+        `;
+        
+        showNotification('❌ Failed to load Fear & Greed Index', 'error');
+    }
+}
+
+/**
+ * Display Fear & Greed Index in the UI
+ * Shows value, classification, and visual meter
+ * 
+ * @param {Object} data - Fear & Greed data from API
+ */
+function displayFearGreed(data) {
+    const cardDiv = document.getElementById('fearGreedCard');
+    
+    // Get color based on value
+    // Red = Fear, Yellow = Neutral, Green = Greed
+    let color, bgColor, emoji, signal;
+    
+    if (data.value <= 24) {
+        // Extreme Fear (0-24)
+        color = '#dc2626'; // Red
+        bgColor = '#fef2f2';
+        emoji = '😨';
+        signal = 'Potential BUY signal (contrarian)';
+    } else if (data.value <= 49) {
+        // Fear (25-49)
+        color = '#f59e0b'; // Orange
+        bgColor = '#fffbeb';
+        emoji = '😰';
+        signal = 'Market cautious - Wait and watch';
+    } else if (data.value <= 74) {
+        // Greed (50-74)
+        color = '#84cc16'; // Light green
+        bgColor = '#f7fee7';
+        emoji = '😏';
+        signal = 'Market bullish - Be careful';
+    } else {
+        // Extreme Greed (75-100)
+        color = '#16a34a'; // Green
+        bgColor = '#f0fdf4';
+        emoji = '🤑';
+        signal = 'Potential SELL signal (contrarian)';
+    }
+    
+    // Build HTML
+    cardDiv.innerHTML = `
+        <div style="text-align: center; padding: 2rem; background: ${bgColor}; border-radius: 8px; border: 2px solid ${color};">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">${emoji}</div>
+            
+            <div style="font-size: 4rem; font-weight: bold; color: ${color}; margin-bottom: 0.5rem;">
+                ${data.value}
+            </div>
+            
+            <div style="font-size: 1.5rem; font-weight: 600; color: ${color}; margin-bottom: 1rem;">
+                ${data.value_classification}
+            </div>
+            
+            <!-- Progress Bar -->
+            <div style="width: 100%; max-width: 500px; height: 30px; background: #e5e7eb; border-radius: 15px; margin: 1.5rem auto; overflow: hidden; position: relative;">
+                <div style="height: 100%; width: ${data.value}%; background: ${color}; transition: width 0.5s ease;"></div>
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.875rem; font-weight: 600; color: #1f2937;">
+                    0 ← Fear | Greed → 100
+                </div>
+            </div>
+            
+            <!-- Trading Signal -->
+            <div style="margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 6px; border: 1px solid ${color};">
+                <p style="margin: 0; font-size: 1rem; font-weight: 600; color: ${color};">
+                    🎯 ${signal}
+                </p>
+            </div>
+            
+            <!-- Last Updated -->
+            <div style="margin-top: 1.5rem; font-size: 0.875rem; color: #6b7280;">
+                <strong>Last Updated:</strong> ${data.timestamp}<br>
+                <em style="font-size: 0.8125rem;">Updates daily from Alternative.me</em>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Load Top 100 Cryptocurrencies
+ * Fetches CoinMarketCap-style market overview
+ * 
+ * Shows:
+ * - Rank by market cap
+ * - Name and symbol
+ * - Current price
+ * - Market capitalization
+ * - 24h and 7d price change %
+ * - 24h trading volume
+ */
+async function loadTopCoins() {
+    console.log('🌐 Loading Top 100 Cryptocurrencies...');
+    
+    const tbody = document.querySelector('#topCoinsTable tbody');
+    
+    if (!tbody) {
+        console.log('❌ Top coins table not found');
+        return;
+    }
+    
+    // Show loading state
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="8" style="text-align: center; padding: 2rem;">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading market data...</p>
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    try {
+        // Fetch top coins from API
+        const response = await fetch('/api/market/top?limit=100');
+        const data = await response.json();
+        
+        if (data.data && data.data.length > 0) {
+            console.log(`✅ Loaded ${data.data.length} cryptocurrencies`);
+            
+            // Update data source info
+            const sourceSpan = document.getElementById('marketDataSource');
+            const timeSpan = document.getElementById('marketDataTime');
+            
+            if (sourceSpan) {
+                sourceSpan.textContent = data.demo_mode ? 'Demo Mode (Sample Data)' : 'CoinMarketCap API';
+                sourceSpan.style.color = data.demo_mode ? '#f59e0b' : '#10b981';
+            }
+            
+            if (timeSpan) {
+                timeSpan.textContent = new Date().toLocaleString();
+            }
+            
+            // Display the coins
+            displayTopCoins(data.data);
+        } else {
+            throw new Error(data.error || 'No data received');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading top coins:', error);
+        
+        // Show error state
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 2rem; color: #ef4444;">
+                    <p><strong>❌ Failed to load market data</strong></p>
+                    <p>${error.message}</p>
+                    <p style="margin-top: 1rem;">
+                        <button onclick="loadTopCoins()" class="btn btn-secondary btn-sm">🔄 Try Again</button>
+                    </p>
+                </td>
+            </tr>
+        `;
+        
+        showNotification('❌ Failed to load market data', 'error');
+    }
+}
+
+/**
+ * Display top coins in the table
+ * Formats data with proper number formatting and color coding
+ * 
+ * @param {Array} coins - Array of coin objects
+ */
+function displayTopCoins(coins) {
+    const tbody = document.querySelector('#topCoinsTable tbody');
+    
+    if (!coins || coins.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 2rem;">
+                    <p>No coins to display</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Build table rows
+    const rows = coins.map(coin => {
+        // Color code 24h change (green = positive, red = negative)
+        const change24hColor = coin.percent_change_24h >= 0 ? '#10b981' : '#ef4444';
+        const change24hSign = coin.percent_change_24h >= 0 ? '+' : '';
+        
+        // Color code 7d change
+        const change7dColor = coin.percent_change_7d >= 0 ? '#10b981' : '#ef4444';
+        const change7dSign = coin.percent_change_7d >= 0 ? '+' : '';
+        
+        // Format large numbers (market cap and volume)
+        const formatLargeNumber = (num) => {
+            if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            return num.toFixed(2);
+        };
+        
+        return `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="font-weight: 600; color: #6b7280;">${coin.rank}</td>
+                <td>
+                    <strong>${coin.name}</strong>
+                </td>
+                <td style="color: #6b7280;">${coin.symbol}</td>
+                <td><strong>$${coin.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                <td>$${formatLargeNumber(coin.market_cap)}</td>
+                <td style="color: ${change24hColor}; font-weight: 600;">${change24hSign}${coin.percent_change_24h.toFixed(2)}%</td>
+                <td style="color: ${change7dColor}; font-weight: 600;">${change7dSign}${coin.percent_change_7d.toFixed(2)}%</td>
+                <td>$${formatLargeNumber(coin.volume_24h)}</td>
+            </tr>
+        `;
+    }).join('');
+    
+    tbody.innerHTML = rows;
+    
+    console.log('✅ Market overview table populated');
+}
+
+
+// ============================================
+// TASK 43: EMA-AWARE BOT EXECUTION HELPERS
+// ============================================
+
+/**
+ * Display EMA context information in bot execution result (TASK 43)
+ * Shows why a bot executed or was paused based on market trends
+ * 
+ * @param {Object} result - Bot execution result from API
+ * @param {string} botType - 'grid' or 'dca'
+ * @returns {string} HTML string with EMA context display
+ */
+function formatBotEMAContext(result, botType) {
+    if (!result.ema_context) {
+        return '';
+    }
+    
+    const ctx = result.ema_context;
+    const executed = result.executed !== false;
+    
+    // Color coding based on execution status
+    let statusColor, statusIcon, statusText;
+    if (executed) {
+        statusColor = '#10b981';  // Green
+        statusIcon = '✅';
+        statusText = 'Executed';
+    } else {
+        statusColor = '#f59e0b';  // Orange
+        statusIcon = '⏸️';
+        statusText = 'Paused';
+    }
+    
+    // Signal color
+    let signalColor = '#6b7280';  // Gray default
+    if (ctx.signal === 'BUY') signalColor = '#10b981';
+    if (ctx.signal === 'SELL') signalColor = '#ef4444';
+    
+    // Confidence color
+    let confidenceColor = '#ef4444';  // Red
+    if (ctx.confidence >= 70) confidenceColor = '#10b981';  // Green
+    else if (ctx.confidence >= 40) confidenceColor = '#f59e0b';  // Orange
+    
+    return `
+        <div style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-left: 4px solid ${statusColor}; border-radius: 6px;">
+            <div style="font-weight: 600; margin-bottom: 0.75rem; color: ${statusColor};">
+                ${statusIcon} ${botType.toUpperCase()} Bot ${statusText}
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem;">
+                <div>
+                    <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem;">EMA Signal</div>
+                    <div style="font-weight: 600; color: ${signalColor};">${ctx.signal}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem;">Confidence</div>
+                    <div style="font-weight: 600; color: ${confidenceColor};">${ctx.confidence}%</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem;">Trend</div>
+                    <div style="font-weight: 600; font-size: 0.875rem;">
+                        ${ctx.trend === 'long_term_uptrend' ? '📈 Uptrend' : 
+                          ctx.trend === 'long_term_downtrend' ? '📉 Downtrend' : '⚪ Sideways'}
+                    </div>
+                </div>
+            </div>
+            
+            <div style="padding: 0.75rem; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 0.875rem;">
+                <strong>Reason:</strong> ${result.reason || 'Executed normally'}
+            </div>
+            
+            ${ctx.summary ? `
+                <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b7280;">
+                    ${ctx.summary}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+
+/**
+ * Show bot execution result in a modal or alert (TASK 43)
+ * Displays execution status and EMA context
+ * 
+ * @param {Object} result - Bot execution result from API
+ * @param {string} botType - 'grid' or 'dca'
+ */
+function showBotExecutionResult(result, botType) {
+    const executed = result.executed !== false;
+    const title = executed ? 
+        `${botType.toUpperCase()} Bot Executed` : 
+        `${botType.toUpperCase()} Bot Paused`;
+    
+    const message = result.message || (executed ? 'Bot executed successfully' : 'Bot execution skipped');
+    
+    // Create modal content
+    const emaContextHTML = formatBotEMAContext(result, botType);
+    
+    // For now, use alert (can be upgraded to modal later)
+    const statusEmoji = executed ? '✅' : '⏸️';
+    let alertMessage = `${statusEmoji} ${title}\n\n${message}`;
+    
+    if (result.ema_context) {
+        alertMessage += `\n\nEMA Signal: ${result.ema_context.signal} (${result.ema_context.confidence}% confidence)`;
+        alertMessage += `\nTrend: ${result.ema_context.trend}`;
+        alertMessage += `\nReason: ${result.reason || 'Normal execution'}`;
+    }
+    
+    alert(alertMessage);
+    
+    // Log to console for debugging
+    console.log(`${statusEmoji} ${title}:`, result);
+}
+
+
+/**
+ * Example: Handle Grid Bot run_once response (TASK 43)
+ * This function can be called when the Grid Bot "Run Once" button is clicked
+ * 
+ * @param {number} botId - Grid bot ID
+ * @param {number} exchangeAccountId - Exchange account to use
+ */
+async function executeGridBotOnce(botId, exchangeAccountId) {
+    try {
+        console.log(`🤖 Executing Grid Bot #${botId}...`);
+        
+        const response = await fetch(`/api/grid_bot/${botId}/run_once`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                exchange_account_id: exchangeAccountId,
+                amount_per_order: null  // Use default
+            })
+        });
+        
+        const result = await response.json();
+        
+        // TASK 43: Show result with EMA context
+        showBotExecutionResult(result, 'grid');
+        
+        // Reload bot list if needed
+        // loadGridBots();
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Error executing grid bot:', error);
+        alert(`Error: ${error.message}`);
+        return null;
+    }
+}
+
+
+/**
+ * Example: Handle DCA Bot run_once response (TASK 43)
+ * This function can be called when the DCA Bot "Run Once" button is clicked
+ * 
+ * @param {number} botId - DCA bot ID
+ */
+async function executeDCABotOnce(botId) {
+    try {
+        console.log(`🤖 Executing DCA Bot #${botId}...`);
+        
+        const response = await fetch(`/api/dca_bot/${botId}/run_once`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        // TASK 43: Show result with EMA context
+        showBotExecutionResult(result, 'dca');
+        
+        // Reload bot list if needed
+        // loadDCABots();
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Error executing DCA bot:', error);
+        alert(`Error: ${error.message}`);
+        return null;
+    }
+}
+

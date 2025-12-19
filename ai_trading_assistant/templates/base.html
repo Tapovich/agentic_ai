@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Trading Assistant{% endblock %}</title>
+    
+    <!-- Link to custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('home') }}" class="nav-logo">
+                📈 AI Trading Assistant
+            </a>
+            
+            {% if session.user_id %}
+            <!-- Show these links only if user is logged in -->
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('dashboard') }}" class="nav-link">📊 Dashboard</a></li>
+                <li><a href="{{ url_for('trade') }}" class="nav-link">💹 Trade</a></li>
+                <li><a href="{{ url_for('portfolio') }}" class="nav-link">💼 Portfolio</a></li>
+                <li><a href="{{ url_for('advanced_prediction_page') }}" class="nav-link">🔮 Prediction</a></li>
+                <li><a href="{{ url_for('exchanges') }}" class="nav-link">🔗 Exchanges</a></li>
+                <li><a href="{{ url_for('profile') }}" class="nav-link">👤 Profile</a></li>
+                <li><a href="{{ url_for('logout') }}" class="nav-logout">🚪 Logout</a></li>
+            </ul>
+            {% else %}
+            <!-- Show these links if user is NOT logged in -->
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('login') }}">Login</a></li>
+                <li><a href="{{ url_for('register') }}">Register</a></li>
+            </ul>
+            {% endif %}
+        </div>
+    </nav>
+    
+    <!-- Flash Messages -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">
+                    {{ message }}
+                    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}
+        {% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 AI Trading Assistant. Paper trading for educational purposes only.</p>
+        <nav class="footer-links">
+            <a href="{{ url_for('faq') }}">❓ FAQ</a>
+            <span class="footer-separator">|</span>
+            <a href="{{ url_for('privacy') }}">🔒 Privacy Policy</a>
+            <span class="footer-separator">|</span>
+            <a href="{{ url_for('terms') }}">📜 Terms of Use</a>
+        </nav>
+    </footer>
+    
+    <!-- Link to custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Page-specific scripts -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+

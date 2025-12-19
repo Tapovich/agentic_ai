@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - AI Trading Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>👤 Profile Settings</h1>
+        <p>Manage your account settings and security</p>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div style="max-width: 900px; margin: 0 auto;">
+        <!-- Account Information Card -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-header">
+                <h2>👤 Account Information</h2>
+            </div>
+            <div class="card-body">
+                <form id="profileForm" style="max-width: 500px;">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            class="form-input" 
+                            value="{{ user.username }}"
+                            placeholder="Enter username"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            class="form-input" 
+                            value="{{ user.email }}"
+                            placeholder="Enter email"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Member Since</label>
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            value="{{ user.created_at if user.created_at else 'N/A' }}"
+                            disabled
+                        >
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary" onclick="updateProfile()">
+                        💾 Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Change Password Card -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-header">
+                <h2>🔒 Change Password</h2>
+            </div>
+            <div class="card-body">
+                <form id="passwordForm" style="max-width: 500px;">
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password</label>
+                        <input 
+                            type="password" 
+                            id="currentPassword" 
+                            class="form-input" 
+                            placeholder="Enter current password"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <input 
+                            type="password" 
+                            id="newPassword" 
+                            class="form-input" 
+                            placeholder="Enter new password"
+                            required
+                        >
+                        <small style="color: #64748b;">Minimum 8 characters</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm New Password</label>
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            class="form-input" 
+                            placeholder="Confirm new password"
+                            required
+                        >
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary" onclick="changePassword()">
+                        🔑 Change Password
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Two-Factor Authentication Card -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-header">
+                <h2>🔐 Two-Factor Authentication (2FA)</h2>
+            </div>
+            <div class="card-body">
+                <div style="max-width: 500px;">
+                    <div style="padding: 1.5rem; background: #f8fafc; border-radius: 8px; margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0 0 0.5rem 0; font-size: 1.125rem;">Email 2FA</h3>
+                                <p style="margin: 0; color: #64748b; font-size: 0.875rem;">
+                                    Receive verification codes via email
+                                </p>
+                            </div>
+                            <div>
+                                <span class="badge" style="background: #ef4444; color: white; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600;">
+                                    Disabled
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="alert('2FA setup coming soon! This will send verification codes to your email for enhanced security.')">
+                        ⚡ Enable 2FA
+                    </button>
+                    
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: #eff6ff; border-left: 4px solid #2563eb; border-radius: 4px;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #1e40af;">ℹ️ About 2FA</h4>
+                        <p style="margin: 0; font-size: 0.875rem; color: #1e3a8a; line-height: 1.6;">
+                            Two-Factor Authentication adds an extra layer of security to your account. 
+                            When enabled, you'll receive a verification code via email each time you log in.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Account Statistics Card -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-header">
+                <h2>📊 Account Statistics</h2>
+            </div>
+            <div class="card-body">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-content">
+                            <div class="stat-label">Virtual Balance</div>
+                            <div class="stat-value">${{ "%.2f"|format(user.balance) }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-content">
+                            <div class="stat-label">Total Trades</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">🤖</div>
+                        <div class="stat-content">
+                            <div class="stat-label">Active Bots</div>
+                            <div class="stat-value">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Danger Zone Card -->
+        <div class="card" style="border: 2px solid #ef4444;">
+            <div class="card-header" style="background: #fef2f2; color: #991b1b;">
+                <h2>⚠️ Danger Zone</h2>
+            </div>
+            <div class="card-body">
+                <div style="max-width: 500px;">
+                    <p style="color: #64748b; margin-bottom: 1.5rem;">
+                        Deleting your account is permanent and cannot be undone. All your data, trades, and bot configurations will be lost.
+                    </p>
+                    <button class="btn" style="background: #ef4444; color: white;" onclick="confirmDeleteAccount()">
+                        🗑️ Delete Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateProfile() {
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
+    
+    if (!username || !email) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    // TODO: Implement API call to update profile
+    alert('Profile update functionality coming soon!\n\nUsername: ' + username + '\nEmail: ' + email);
+}
+
+function changePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        alert('New password must be at least 8 characters');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        alert('New passwords do not match');
+        return;
+    }
+    
+    // TODO: Implement API call to change password
+    alert('Password change functionality coming soon!');
+    
+    // Clear form
+    document.getElementById('passwordForm').reset();
+}
+
+function confirmDeleteAccount() {
+    const confirmed = confirm(
+        '⚠️ WARNING: This action cannot be undone!\n\n' +
+        'Are you sure you want to delete your account?\n' +
+        'All your data will be permanently lost.'
+    );
+    
+    if (confirmed) {
+        const doubleConfirm = confirm(
+            'This is your last chance!\n\n' +
+            'Click OK to permanently delete your account.'
+        );
+        
+        if (doubleConfirm) {
+            // TODO: Implement API call to delete account
+            alert('Account deletion functionality coming soon!');
+        }
+    }
+}
+</script>
+
+<style>
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-input:disabled {
+    background: #f3f4f6;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+

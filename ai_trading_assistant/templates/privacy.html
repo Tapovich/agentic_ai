@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy - AI Trading Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>🔒 Privacy Policy</h1>
+        <p>Last Updated: November 13, 2025</p>
+    </div>
+
+    <div class="legal-container">
+        <!-- Important Notice -->
+        <div class="legal-notice">
+            <h3>⚠️ Educational Project Notice</h3>
+            <p>
+                This is a <strong>university/educational project</strong> demonstrating cryptocurrency 
+                trading automation concepts. This Privacy Policy is a <strong>template</strong> and 
+                must be reviewed and approved by legal counsel before any production use.
+            </p>
+            <p style="color: #ef4444; font-weight: 600;">
+                Do NOT use this platform for real trading or with production data without proper 
+                legal review and security hardening.
+            </p>
+        </div>
+
+        <!-- Introduction -->
+        <section class="legal-section">
+            <h2>1. Introduction</h2>
+            <p>
+                AI Trading Assistant ("we", "our", or "the platform") is committed to protecting 
+                your privacy. This Privacy Policy explains how we collect, use, disclose, and 
+                safeguard your information when you use our platform.
+            </p>
+            <p>
+                By using the platform, you consent to the data practices described in this policy.
+            </p>
+        </section>
+
+        <!-- Information We Collect -->
+        <section class="legal-section">
+            <h2>2. Information We Collect</h2>
+            
+            <h3>2.1 Account Information</h3>
+            <ul>
+                <li><strong>Username:</strong> Used for authentication and display</li>
+                <li><strong>Email address:</strong> For account recovery and notifications</li>
+                <li><strong>Password:</strong> Hashed using werkzeug.security (bcrypt) - never stored in plaintext</li>
+                <li><strong>Account creation date:</strong> Timestamp of registration</li>
+            </ul>
+
+            <h3>2.2 Exchange API Credentials</h3>
+            <ul>
+                <li><strong>Exchange name:</strong> (Binance, Bybit, OKX, MEXC, BingX)</li>
+                <li><strong>API Key:</strong> Public identifier for exchange access</li>
+                <li><strong>API Secret:</strong> Currently stored with base64 encoding (⚠️ NOT secure encryption)</li>
+                <li><strong>Account label:</strong> User-provided nickname for the account</li>
+                <li><strong>Testnet flag:</strong> Whether testnet or production mode</li>
+            </ul>
+            <p style="color: #ef4444;">
+                <strong>Security Warning:</strong> In this educational version, API secrets are NOT 
+                properly encrypted. For production use, secrets MUST be encrypted with AES-256 or 
+                stored in a secure vault (AWS KMS, HashiCorp Vault, etc.).
+            </p>
+
+            <h3>2.3 Trading Data</h3>
+            <ul>
+                <li><strong>Bot configurations:</strong> Grid/DCA bot parameters</li>
+                <li><strong>Trade history:</strong> Executed orders, timestamps, prices, amounts</li>
+                <li><strong>Predictions:</strong> AI/indicator predictions you request</li>
+                <li><strong>Price history:</strong> OHLCV data fetched from exchanges</li>
+            </ul>
+
+            <h3>2.4 Technical Data</h3>
+            <ul>
+                <li><strong>Log data:</strong> API requests, errors, system events (stored in server logs)</li>
+                <li><strong>IP addresses:</strong> May be logged for security purposes</li>
+                <li><strong>Browser information:</strong> User agent strings in logs</li>
+                <li><strong>Session data:</strong> Flask session cookies (server-side)</li>
+            </ul>
+
+            <h3>2.5 Usage Analytics</h3>
+            <p>
+                Currently, we do NOT use third-party analytics tools (Google Analytics, etc.). 
+                However, server logs may contain usage patterns.
+            </p>
+        </section>
+
+        <!-- How We Use Information -->
+        <section class="legal-section">
+            <h2>3. How We Use Your Information</h2>
+            <ul>
+                <li><strong>Authentication:</strong> Verify your identity and maintain your session</li>
+                <li><strong>Trading operations:</strong> Execute bot strategies and API calls to exchanges</li>
+                <li><strong>Predictions:</strong> Generate AI/indicator-based trading signals</li>
+                <li><strong>Data visualization:</strong> Display charts, indicators, and analytics</li>
+                <li><strong>Service improvement:</strong> Debug errors, optimize performance</li>
+                <li><strong>Security:</strong> Detect and prevent unauthorized access</li>
+            </ul>
+        </section>
+
+        <!-- Data Storage -->
+        <section class="legal-section">
+            <h2>4. Data Storage & Security</h2>
+            
+            <h3>4.1 Database</h3>
+            <ul>
+                <li><strong>Type:</strong> SQLite (local file-based database)</li>
+                <li><strong>Location:</strong> Server filesystem (ai_trading.db)</li>
+                <li><strong>Encryption at rest:</strong> ❌ NOT encrypted (educational project)</li>
+                <li><strong>Backups:</strong> User-managed (not automated)</li>
+            </ul>
+
+            <h3>4.2 Security Measures (Current Implementation)</h3>
+            <ul>
+                <li>✅ Password hashing with bcrypt</li>
+                <li>✅ Server-side session management</li>
+                <li>✅ Login required decorators for protected routes</li>
+                <li>⚠️ API secrets: Base64 encoding (NOT secure)</li>
+                <li>❌ Database encryption: Not implemented</li>
+                <li>❌ HTTPS: Not enforced (development mode)</li>
+                <li>❌ Rate limiting: Not implemented</li>
+            </ul>
+
+            <h3>4.3 Required Security for Production</h3>
+            <p style="color: #ef4444; font-weight: 600;">
+                Before using this system with real data, implement:
+            </p>
+            <ul>
+                <li>AES-256 encryption for API secrets</li>
+                <li>Database encryption at rest</li>
+                <li>HTTPS/TLS for all connections</li>
+                <li>Rate limiting and DDoS protection</li>
+                <li>Regular security audits</li>
+                <li>Input validation and sanitization</li>
+                <li>CSRF protection</li>
+                <li>Secure session configuration</li>
+            </ul>
+        </section>
+
+        <!-- Data Sharing -->
+        <section class="legal-section">
+            <h2>5. Data Sharing & Third Parties</h2>
+            
+            <h3>5.1 Exchange APIs</h3>
+            <p>
+                When you link an exchange account, we use your API credentials to communicate 
+                with the exchange on your behalf. This includes:
+            </p>
+            <ul>
+                <li>Fetching account balances</li>
+                <li>Retrieving open orders and positions</li>
+                <li>Placing/canceling orders (if enabled)</li>
+                <li>Fetching historical price data</li>
+            </ul>
+            <p>
+                <strong>Your API credentials are sent directly to the exchange</strong> via CCXT 
+                library. We do not share them with any other third parties.
+            </p>
+
+            <h3>5.2 External Services</h3>
+            <ul>
+                <li><strong>TradingView:</strong> Chart widget loaded from tradingview.com (for visualization)</li>
+                <li><strong>CoinMarketCap API:</strong> (If configured) For top coins data</li>
+                <li><strong>Alternative.me API:</strong> (If configured) For Fear & Greed index</li>
+            </ul>
+            <p>
+                These services may have their own privacy policies. We recommend reviewing them.
+            </p>
+
+            <h3>5.3 We Do NOT:</h3>
+            <ul>
+                <li>❌ Sell your data to third parties</li>
+                <li>❌ Share your API credentials with anyone</li>
+                <li>❌ Use your data for marketing purposes</li>
+                <li>❌ Track you across other websites</li>
+            </ul>
+        </section>
+
+        <!-- User Rights -->
+        <section class="legal-section">
+            <h2>6. Your Rights & Control</h2>
+            
+            <h3>6.1 Access & Update</h3>
+            <ul>
+                <li>View your profile information at <code>/profile</code></li>
+                <li>Update your username, email, password via <code>/api/profile/update</code></li>
+                <li>View linked exchange accounts at <code>/exchanges</code></li>
+            </ul>
+
+            <h3>6.2 Data Deletion</h3>
+            <ul>
+                <li>Remove exchange accounts (soft delete - sets is_active=0)</li>
+                <li>Delete bot configurations</li>
+            </ul>
+            <p>
+                <strong>Note:</strong> Full account deletion is not yet implemented. In a production 
+                system, users should be able to request complete data deletion (GDPR "right to be forgotten").
+            </p>
+
+            <h3>6.3 Data Export</h3>
+            <p>
+                Currently not implemented. Users should be able to export their data in machine-readable 
+                format (JSON/CSV).
+            </p>
+        </section>
+
+        <!-- Cookies -->
+        <section class="legal-section">
+            <h2>7. Cookies & Sessions</h2>
+            <p>
+                The platform uses Flask server-side sessions for authentication:
+            </p>
+            <ul>
+                <li><strong>Session Cookie:</strong> Stores session ID (encrypted with SECRET_KEY)</li>
+                <li><strong>HttpOnly:</strong> Cookie not accessible via JavaScript (XSS protection)</li>
+                <li><strong>Duration:</strong> Session expires after browser close or logout</li>
+            </ul>
+            <p>
+                We do NOT use tracking cookies or advertising cookies.
+            </p>
+        </section>
+
+        <!-- Data Retention -->
+        <section class="legal-section">
+            <h2>8. Data Retention</h2>
+            <ul>
+                <li><strong>Account data:</strong> Retained until user requests deletion</li>
+                <li><strong>Trading history:</strong> Retained indefinitely (for analysis)</li>
+                <li><strong>Price history:</strong> Retained indefinitely (for predictions)</li>
+                <li><strong>Server logs:</strong> Typically rotated after 30 days</li>
+            </ul>
+            <p>
+                In a production system, establish clear retention policies compliant with applicable 
+                regulations (GDPR, CCPA, etc.).
+            </p>
+        </section>
+
+        <!-- Children's Privacy -->
+        <section class="legal-section">
+            <h2>9. Children's Privacy</h2>
+            <p>
+                The platform is NOT intended for children under 18 years old. We do not knowingly 
+                collect personal information from children. If you are under 18, do not use this platform.
+            </p>
+            <p>
+                Cryptocurrency trading involves significant financial risk and is regulated by 
+                age-restricted laws in most jurisdictions.
+            </p>
+        </section>
+
+        <!-- International Users -->
+        <section class="legal-section">
+            <h2>10. International Data Transfers</h2>
+            <p>
+                This platform may be hosted on servers in [SPECIFY LOCATION]. If you access the 
+                platform from outside this region, your data may be transferred to and processed 
+                in [SPECIFY LOCATION].
+            </p>
+            <p>
+                <strong>For EU Users:</strong> If this platform were to handle EU user data in 
+                production, it would need to comply with GDPR, including:
+            </p>
+            <ul>
+                <li>Data Processing Agreements (DPAs)</li>
+                <li>Standard Contractual Clauses (SCCs)</li>
+                <li>Privacy Shield compliance (if applicable)</li>
+                <li>Right to erasure, access, portability</li>
+            </ul>
+        </section>
+
+        <!-- Changes to Policy -->
+        <section class="legal-section">
+            <h2>11. Changes to This Privacy Policy</h2>
+            <p>
+                We may update this Privacy Policy from time to time. Changes will be posted on 
+                this page with an updated "Last Updated" date.
+            </p>
+            <p>
+                Continued use of the platform after changes constitutes acceptance of the updated policy.
+            </p>
+        </section>
+
+        <!-- Contact -->
+        <section class="legal-section">
+            <h2>12. Contact Us</h2>
+            <p>
+                If you have questions about this Privacy Policy or your data:
+            </p>
+            <ul>
+                <li><strong>Educational Project:</strong> Contact your course instructor or project supervisor</li>
+                <li><strong>GitHub Issues:</strong> Report issues on the project repository</li>
+                <li><strong>Email:</strong> [SPECIFY CONTACT EMAIL]</li>
+            </ul>
+        </section>
+
+        <!-- Disclaimer -->
+        <div class="legal-disclaimer">
+            <h3>⚖️ Legal Disclaimer</h3>
+            <p>
+                This Privacy Policy is a <strong>template for educational purposes</strong>. 
+                It is NOT a legally binding document and has NOT been reviewed by legal counsel.
+            </p>
+            <p style="color: #ef4444; font-weight: 600;">
+                Before deploying this platform for production use:
+            </p>
+            <ul>
+                <li>Consult with a qualified attorney specializing in data privacy</li>
+                <li>Ensure compliance with applicable laws (GDPR, CCPA, etc.)</li>
+                <li>Implement proper security measures</li>
+                <li>Obtain user consent for data processing</li>
+                <li>Establish data breach notification procedures</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Legal Document Styling */
+.legal-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.legal-notice {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-left: 4px solid #f59e0b;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+}
+
+.legal-notice h3 {
+    color: #92400e;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.legal-notice p {
+    color: #78350f;
+    margin: 0.5rem 0;
+}
+
+.legal-section {
+    margin-bottom: 2.5rem;
+}
+
+.legal-section h2 {
+    color: #1f2937;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #667eea;
+}
+
+.legal-section h3 {
+    color: #4b5563;
+    font-size: 1.15rem;
+    margin: 1.5rem 0 0.75rem 0;
+}
+
+.legal-section p {
+    color: #374151;
+    line-height: 1.8;
+    margin: 0.75rem 0;
+}
+
+.legal-section ul {
+    color: #374151;
+    line-height: 1.8;
+    margin: 0.75rem 0 0.75rem 1.5rem;
+}
+
+.legal-section li {
+    margin: 0.5rem 0;
+}
+
+.legal-section code {
+    background: #f3f4f6;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #4f46e5;
+}
+
+.legal-section strong {
+    color: #1f2937;
+}
+
+.legal-disclaimer {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border-left: 4px solid #ef4444;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border-radius: 8px;
+}
+
+.legal-disclaimer h3 {
+    color: #991b1b;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.legal-disclaimer p, .legal-disclaimer ul {
+    color: #7f1d1d;
+}
+
+@media (max-width: 768px) {
+    .legal-container {
+        padding: 1.5rem;
+    }
+    
+    .legal-section h2 {
+        font-size: 1.25rem;
+    }
+    
+    .legal-section h3 {
+        font-size: 1.05rem;
+    }
+}
+</style>
+{% endblock %}
+

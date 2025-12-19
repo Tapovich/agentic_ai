@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Trade - AI Trading Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>💹 Trade</h1>
+        <p>Execute trades with your bots, manual trading, and view live charts</p>
+    </div>
+    
+    <!-- Top Info Bar -->
+    <div class="stats-grid" style="margin-bottom: 3rem;">
+        <div class="stat-card balance-card" style="padding: 2.5rem;">
+            <div class="stat-icon" style="font-size: 3.5rem;">💰</div>
+            <div class="stat-content">
+                <div class="stat-label" style="font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 500;">Virtual Balance</div>
+                <div class="stat-value" style="font-size: 2.25rem; font-weight: 700;">${{ "%.2f"|format(user.balance) }}</div>
+            </div>
+        </div>
+        
+        <div class="stat-card" style="padding: 2.5rem;">
+            <div class="stat-icon" style="font-size: 3.5rem;">📊</div>
+            <div class="stat-content">
+                <div class="stat-label" style="font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 500;">Active Bots</div>
+                <div class="stat-value" style="font-size: 2.25rem; font-weight: 700;">0</div>
+                <div class="stat-change" style="font-size: 1rem;">Coming soon</div>
+            </div>
+        </div>
+        
+        <div class="stat-card" style="padding: 2.5rem;">
+            <div class="stat-icon" style="font-size: 3.5rem;">⚡</div>
+            <div class="stat-content">
+                <div class="stat-label" style="font-size: 1.1rem; margin-bottom: 0.75rem; font-weight: 500;">Today's Trades</div>
+                <div class="stat-value" style="font-size: 2.25rem; font-weight: 700;">0</div>
+                <div class="stat-change" style="font-size: 1rem;">Start trading!</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div class="main-grid" style="display: block; width: 100%;">
+        <!-- Left Column: Chart & Bots -->
+        <div class="left-column" style="width: 100%; max-width: 100%;">
+            <!-- TradingView Chart Card -->
+            <div class="card chart-card" style="width: 100%;">
+                <div class="card-header">
+                    <h2>📈 Live Chart</h2>
+                    <div class="symbol-selector">
+                        <label for="symbolSelect">Symbol:</label>
+                        <select id="symbolSelect" class="select-input">
+                            <option value="BTCUSDT" {% if active_symbol == 'BTCUSDT' %}selected{% endif %}>Bitcoin (BTC/USDT)</option>
+                            <option value="ETHUSDT" {% if active_symbol == 'ETHUSDT' %}selected{% endif %}>Ethereum (ETH/USDT)</option>
+                            <option value="BNBUSDT" {% if active_symbol == 'BNBUSDT' %}selected{% endif %}>Binance Coin (BNB/USDT)</option>
+                            <option value="SOLUSDT" {% if active_symbol == 'SOLUSDT' %}selected{% endif %}>Solana (SOL/USDT)</option>
+                            <option value="ADAUSDT" {% if active_symbol == 'ADAUSDT' %}selected{% endif %}>Cardano (ADA/USDT)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <!-- TradingView Widget Container -->
+                    <div id="tradingview_widget" style="height: 900px;"></div>
+                </div>
+            </div>
+            
+            <!-- DCA Bot Card with Link -->
+            <div class="card bots-card" style="margin-bottom: 3rem; margin-top: 3rem;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 2rem 2.5rem;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.75rem;">📊 DCA Bot (Spot)</h2>
+                        <p style="margin: 1rem 0 0 0; font-size: 1.1rem; color: #64748b;">Dollar Cost Averaging - Automated buy strategy at regular intervals</p>
+                    </div>
+                    <a href="{{ url_for('dca_bot') }}" class="btn btn-primary" style="text-decoration: none; padding: 1.25rem 2.5rem; font-size: 1.1rem; font-weight: 600;">
+                        Open DCA Bot →
+                    </a>
+                </div>
+                <div class="card-body" style="padding: 2.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;">
+                        <div style="padding: 2rem; background: #f8fafc; border-radius: 12px;">
+                            <div style="font-size: 1rem; color: #64748b; margin-bottom: 0.75rem; font-weight: 500;">Status</div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #f59e0b;">Inactive</div>
+                        </div>
+                        <div style="padding: 2rem; background: #f8fafc; border-radius: 12px;">
+                            <div style="font-size: 1rem; color: #64748b; margin-bottom: 0.75rem; font-weight: 500;">Running Bots</div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #1e293b;">0</div>
+                        </div>
+                        <div style="padding: 2rem; background: #f8fafc; border-radius: 12px;">
+                            <div style="font-size: 1rem; color: #64748b; margin-bottom: 0.75rem; font-weight: 500;">Total PNL</div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #10b981;">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Grid Bot Card with Link -->
+            <div class="card bots-card" style="margin-bottom: 3rem;">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 2rem 2.5rem;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.75rem;">📈 Grid Bot (Spot)</h2>
+                        <p style="margin: 1rem 0 0 0; font-size: 1.1rem; color: #64748b;">Automated buy low, sell high within a price range</p>
+                    </div>
+                    <a href="{{ url_for('grid_bot') }}" class="btn btn-primary" style="text-decoration: none; padding: 1.25rem 2.5rem; font-size: 1.1rem; font-weight: 600;">
+                        Open Grid Bot →
+                    </a>
+                </div>
+                <div class="card-body" style="padding: 2.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;">
+                        <div style="padding: 2rem; background: #f8fafc; border-radius: 12px;">
+                            <div style="font-size: 1rem; color: #64748b; margin-bottom: 0.75rem; font-weight: 500;">Status</div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #f59e0b;">Inactive</div>
+                        </div>
+                        <div style="padding: 2rem; background: #f8fafc; border-radius: 12px;">
+                            <div style="font-size: 1rem; color: #64748b; margin-bottom: 0.75rem; font-weight: 500;">Running Bots</div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #1e293b;">0</div>
+                        </div>
+                        <div style="padding: 2rem; background: #f8fafc; border-radius: 12px;">
+                            <div style="font-size: 1rem; color: #64748b; margin-bottom: 0.75rem; font-weight: 500;">Total PNL</div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #10b981;">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Spacing -->
+    <div style="height: 3rem;"></div>
+</div>
+
+<!-- TradingView Widget Script -->
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<script>
+    // Initialize TradingView Widget
+    function initTradingView(symbol) {
+        new TradingView.widget({
+            "autosize": true,
+            "symbol": "BINANCE:" + symbol,
+            "interval": "60",
+            "timezone": "Etc/UTC",
+            "theme": "light",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "allow_symbol_change": true,
+            "container_id": "tradingview_widget",
+            "studies": [
+                "MASimple@tv-basicstudies",
+                "RSI@tv-basicstudies"
+            ]
+        });
+    }
+    
+    // Initialize TradingView chart
+    function initChartAndTrading() {
+        const activeSymbol = document.getElementById('symbolSelect').value;
+        initTradingView(activeSymbol);
+        
+        // Update chart when symbol changes
+        document.getElementById('symbolSelect').addEventListener('change', function(e) {
+            initTradingView(e.target.value);
+        });
+    }
+</script>
+
+<script>
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initChartAndTrading();
+});
+</script>
+
+<!-- Link trading functionality -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
+

@@ -1,0 +1,52 @@
+# Flask - Web framework for Python
+Flask==3.0.0
+
+# MySQL database connector for Python
+mysql-connector-python==8.2.0
+
+# Scikit-learn - Machine learning library for AI predictions
+scikit-learn==1.3.2
+
+# Pandas - Data manipulation and analysis
+pandas==2.1.3
+
+# Joblib - For saving and loading ML models
+joblib==1.3.2
+
+# Werkzeug - WSGI utilities (comes with Flask but specified for security)
+Werkzeug==3.0.1
+
+# Additional useful libraries
+numpy==1.26.2
+
+# CCXT - Cryptocurrency Exchange Trading Library
+# Unified API for 100+ cryptocurrency exchanges
+ccxt==4.1.0
+
+# Cryptography - For encrypting exchange API keys
+cryptography==41.0.7
+
+# ============================================
+# ADVANCED PREDICTION DEPENDENCIES
+# ============================================
+# Optional dependencies for advanced prediction features
+# Uncomment as needed based on which features you want to use
+
+# Machine Learning & Deep Learning
+# tensorflow==2.15.0  # For LSTM/Deep Learning models
+# xgboost==2.0.2  # For gradient boosted decision trees
+
+# NLP & Sentiment Analysis
+# nltk==3.8.1  # For social sentiment analysis
+# textblob==0.17.1  # Simple sentiment polarity
+# tweepy==4.14.0  # Twitter API integration
+
+# Financial Data APIs
+# yfinance==0.2.32  # Yahoo Finance data (VIX, DXY, stock market)
+requests==2.31.0  # HTTP library for API calls (Market Data Service)
+
+# Market Data APIs (TASK 36)
+# CoinMarketCap - Get free API key at https://coinmarketcap.com/api/
+# Alternative.me Fear & Greed - FREE (no key needed)
+# Both APIs work with requests library above
+

@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+
+{% block title %}Terms of Use - AI Trading Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>📜 Terms of Use</h1>
+        <p>Last Updated: November 13, 2025</p>
+    </div>
+
+    <div class="legal-container">
+        <!-- Important Notice -->
+        <div class="legal-notice">
+            <h3>⚠️ Educational Project Notice</h3>
+            <p>
+                This is a <strong>university/educational project</strong> demonstrating cryptocurrency 
+                trading automation concepts. These Terms of Use are a <strong>template</strong> and 
+                must be reviewed and approved by legal counsel before any production use.
+            </p>
+            <p style="color: #ef4444; font-weight: 600;">
+                This platform is NOT intended for commercial use or real trading without proper 
+                legal review, security hardening, and regulatory compliance.
+            </p>
+        </div>
+
+        <!-- Agreement -->
+        <section class="legal-section">
+            <h2>1. Acceptance of Terms</h2>
+            <p>
+                By accessing or using the AI Trading Assistant platform ("the Platform", "we", "our"), 
+                you ("User", "you") agree to be bound by these Terms of Use. If you do not agree 
+                to these terms, you must not use the Platform.
+            </p>
+            <p>
+                <strong>You acknowledge that:</strong>
+            </p>
+            <ul>
+                <li>You have read and understood these Terms</li>
+                <li>You have read and understood our Privacy Policy</li>
+                <li>You are at least 18 years old</li>
+                <li>You understand the risks of cryptocurrency trading</li>
+                <li>This is an educational platform, not professional financial advice</li>
+            </ul>
+        </section>
+
+        <!-- Purpose -->
+        <section class="legal-section">
+            <h2>2. Educational Purpose</h2>
+            <p style="color: #ef4444; font-weight: 600;">
+                ❌ THIS PLATFORM IS FOR EDUCATIONAL PURPOSES ONLY.
+            </p>
+            <p>
+                The Platform is designed to demonstrate:
+            </p>
+            <ul>
+                <li>Automated trading strategies (Grid, DCA)</li>
+                <li>AI and machine learning for price prediction</li>
+                <li>Technical analysis using indicators</li>
+                <li>Exchange API integration via CCXT</li>
+                <li>Web application development (Flask, Python, JavaScript)</li>
+            </ul>
+            <p>
+                <strong>This Platform is NOT:</strong>
+            </p>
+            <ul>
+                <li>❌ Professional trading software</li>
+                <li>❌ Financial advice or recommendations</li>
+                <li>❌ Guaranteed to generate profit</li>
+                <li>❌ Suitable for production use without extensive modifications</li>
+                <li>❌ Approved by any financial regulatory authority</li>
+            </ul>
+        </section>
+
+        <!-- Account Responsibilities -->
+        <section class="legal-section">
+            <h2>3. Account Responsibilities</h2>
+            
+            <h3>3.1 Registration</h3>
+            <ul>
+                <li>You must provide accurate information during registration</li>
+                <li>You are responsible for maintaining the confidentiality of your password</li>
+                <li>You must notify us immediately of any unauthorized access</li>
+                <li>One person may not maintain multiple accounts</li>
+            </ul>
+
+            <h3>3.2 Acceptable Use</h3>
+            <p>You agree NOT to:</p>
+            <ul>
+                <li>❌ Use the Platform for illegal activities</li>
+                <li>❌ Attempt to gain unauthorized access to systems</li>
+                <li>❌ Reverse engineer or decompile the code (unless open-source license permits)</li>
+                <li>❌ Use bots or automation to access the Platform (beyond the trading bots provided)</li>
+                <li>❌ Share your account credentials with others</li>
+                <li>❌ Use the Platform to manipulate cryptocurrency markets</li>
+                <li>❌ Violate any applicable laws or regulations</li>
+            </ul>
+
+            <h3>3.3 Testnet Recommendation</h3>
+            <p style="color: #f59e0b; font-weight: 600;">
+                ⚠️ We STRONGLY recommend using testnet/sandbox accounts only.
+            </p>
+            <p>
+                If you choose to connect real exchange accounts with real funds:
+            </p>
+            <ul>
+                <li>You do so at your own risk</li>
+                <li>You acknowledge the Platform's security limitations (see Privacy Policy)</li>
+                <li>You accept full responsibility for any losses</li>
+                <li>You understand that API secrets are not properly encrypted in this version</li>
+            </ul>
+        </section>
+
+        <!-- Trading Risks -->
+        <section class="legal-section">
+            <h2>4. Trading Risks & Disclaimers</h2>
+            
+            <h3>4.1 Financial Risk</h3>
+            <p style="color: #ef4444; font-weight: 600;">
+                ⚠️ CRYPTOCURRENCY TRADING INVOLVES SUBSTANTIAL RISK OF LOSS.
+            </p>
+            <p>
+                You acknowledge that:
+            </p>
+            <ul>
+                <li>You may lose all of your invested capital</li>
+                <li>Past performance does NOT indicate future results</li>
+                <li>AI predictions and indicators are NOT guaranteed to be accurate</li>
+                <li>Automated bots can malfunction or make losses</li>
+                <li>Market conditions can change rapidly</li>
+                <li>Exchange APIs can fail or have downtime</li>
+                <li>You are solely responsible for your trading decisions</li>
+            </ul>
+
+            <h3>4.2 Not Financial Advice</h3>
+            <p>
+                <strong>Nothing on this Platform constitutes financial advice.</strong>
+            </p>
+            <ul>
+                <li>AI predictions are algorithmic outputs, not recommendations</li>
+                <li>Indicator signals are educational demonstrations</li>
+                <li>Bot strategies are examples, not professional trading systems</li>
+                <li>You should conduct your own research (DYOR)</li>
+                <li>Consult with a licensed financial advisor before investing</li>
+            </ul>
+
+            <h3>4.3 No Guarantees</h3>
+            <p>
+                We make NO warranties or guarantees regarding:
+            </p>
+            <ul>
+                <li>Profitability of any strategy</li>
+                <li>Accuracy of predictions or indicators</li>
+                <li>Uptime or availability of the Platform</li>
+                <li>Compatibility with all exchanges</li>
+                <li>Protection against losses</li>
+            </ul>
+        </section>
+
+        <!-- Intellectual Property -->
+        <section class="legal-section">
+            <h2>5. Intellectual Property</h2>
+            
+            <h3>5.1 Open Source</h3>
+            <p>
+                [SPECIFY LICENSE: e.g., MIT License, GPL v3, Apache 2.0]
+            </p>
+            <p>
+                If this project is released under an open-source license, you have the rights 
+                granted by that license. Typical open-source terms include:
+            </p>
+            <ul>
+                <li>Right to use, copy, modify, and distribute</li>
+                <li>Attribution requirements</li>
+                <li>Disclaimer of warranties</li>
+                <li>License compatibility obligations</li>
+            </ul>
+
+            <h3>5.2 Third-Party Resources</h3>
+            <p>
+                The Platform uses third-party libraries and services:
+            </p>
+            <ul>
+                <li><strong>CCXT:</strong> MIT License</li>
+                <li><strong>Flask:</strong> BSD License</li>
+                <li><strong>scikit-learn:</strong> BSD License</li>
+                <li><strong>pandas:</strong> BSD License</li>
+                <li><strong>TradingView:</strong> Chart widget (subject to TradingView's terms)</li>
+            </ul>
+            <p>
+                You must comply with the licenses of all third-party components.
+            </p>
+
+            <h3>5.3 User Content</h3>
+            <p>
+                You retain ownership of your:
+            </p>
+            <ul>
+                <li>Trading strategies and bot configurations</li>
+                <li>Account data</li>
+                <li>Custom modifications (if any)</li>
+            </ul>
+            <p>
+                By using the Platform, you grant us a license to store and process this data 
+                to provide the service.
+            </p>
+        </section>
+
+        <!-- Limitation of Liability -->
+        <section class="legal-section">
+            <h2>6. Limitation of Liability</h2>
+            <p style="color: #ef4444; font-weight: 600; text-transform: uppercase;">
+                TO THE FULLEST EXTENT PERMITTED BY LAW:
+            </p>
+            <ul>
+                <li>THE PLATFORM IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND</li>
+                <li>WE ARE NOT LIABLE FOR ANY TRADING LOSSES</li>
+                <li>WE ARE NOT LIABLE FOR EXCHANGE API FAILURES OR ERRORS</li>
+                <li>WE ARE NOT LIABLE FOR DATA LOSS OR SECURITY BREACHES</li>
+                <li>WE ARE NOT LIABLE FOR THIRD-PARTY ACTIONS (exchanges, APIs, etc.)</li>
+                <li>OUR TOTAL LIABILITY SHALL NOT EXCEED $0 (zero dollars)</li>
+            </ul>
+            <p>
+                <strong>You agree to indemnify and hold us harmless from any claims arising 
+                from your use of the Platform.</strong>
+            </p>
+        </section>
+
+        <!-- Data & Security -->
+        <section class="legal-section">
+            <h2>7. Data & Security</h2>
+            
+            <h3>7.1 Current Security Limitations</h3>
+            <p style="color: #ef4444; font-weight: 600;">
+                ⚠️ THIS PLATFORM HAS KNOWN SECURITY LIMITATIONS:
+            </p>
+            <ul>
+                <li>API secrets are NOT properly encrypted (base64 only)</li>
+                <li>Database is NOT encrypted at rest</li>
+                <li>HTTPS is NOT enforced by default</li>
+                <li>Rate limiting is NOT implemented</li>
+            </ul>
+            <p>
+                <strong>By using the Platform, you acknowledge these limitations.</strong>
+            </p>
+
+            <h3>7.2 Your Responsibilities</h3>
+            <ul>
+                <li>Only use testnet/sandbox accounts for educational purposes</li>
+                <li>Do NOT store real API keys with production funds</li>
+                <li>Enable IP restrictions on exchange API keys</li>
+                <li>Use read-only API permissions where possible</li>
+                <li>Monitor your exchange accounts regularly</li>
+                <li>Report security vulnerabilities responsibly</li>
+            </ul>
+
+            <h3>7.3 Data Breaches</h3>
+            <p>
+                In the event of a data breach:
+            </p>
+            <ul>
+                <li>We will attempt to notify affected users</li>
+                <li>You should immediately revoke compromised API keys</li>
+                <li>You should change your password</li>
+                <li>We are NOT liable for losses resulting from breaches</li>
+            </ul>
+        </section>
+
+        <!-- Termination -->
+        <section class="legal-section">
+            <h2>8. Termination</h2>
+            
+            <h3>8.1 By You</h3>
+            <p>
+                You may stop using the Platform at any time. Currently, account deletion 
+                must be requested manually (feature not yet implemented).
+            </p>
+
+            <h3>8.2 By Us</h3>
+            <p>
+                We reserve the right to:
+            </p>
+            <ul>
+                <li>Suspend or terminate your account for violating these Terms</li>
+                <li>Discontinue the Platform at any time without notice</li>
+                <li>Modify features or remove functionality</li>
+            </ul>
+
+            <h3>8.3 Effect of Termination</h3>
+            <ul>
+                <li>You must cease using the Platform</li>
+                <li>You should revoke exchange API keys</li>
+                <li>Your data may be retained per our Privacy Policy</li>
+                <li>These Terms survive termination where applicable</li>
+            </ul>
+        </section>
+
+        <!-- Regulatory Compliance -->
+        <section class="legal-section">
+            <h2>9. Regulatory Compliance</h2>
+            
+            <h3>9.1 Jurisdiction</h3>
+            <p>
+                <strong>[SPECIFY JURISDICTION]</strong>
+            </p>
+            <p>
+                These Terms are governed by the laws of [SPECIFY COUNTRY/STATE]. 
+                Any disputes shall be resolved in the courts of [SPECIFY LOCATION].
+            </p>
+
+            <h3>9.2 Financial Regulations</h3>
+            <p>
+                Cryptocurrency trading is regulated differently across jurisdictions. 
+                You are responsible for:
+            </p>
+            <ul>
+                <li>Complying with your local laws regarding cryptocurrency</li>
+                <li>Reporting taxable events to authorities</li>
+                <li>Understanding KYC/AML requirements</li>
+                <li>Not using the Platform in prohibited jurisdictions</li>
+            </ul>
+
+            <h3>9.3 No Registration</h3>
+            <p>
+                This Platform is NOT registered with:
+            </p>
+            <ul>
+                <li>SEC (Securities and Exchange Commission)</li>
+                <li>CFTC (Commodity Futures Trading Commission)</li>
+                <li>FinCEN (Financial Crimes Enforcement Network)</li>
+                <li>FCA (Financial Conduct Authority)</li>
+                <li>Or any other financial regulatory authority</li>
+            </ul>
+            <p>
+                It is an educational project and not a regulated financial service.
+            </p>
+        </section>
+
+        <!-- Changes to Terms -->
+        <section class="legal-section">
+            <h2>10. Changes to Terms</h2>
+            <p>
+                We reserve the right to modify these Terms at any time. Changes will be 
+                posted on this page with an updated "Last Updated" date.
+            </p>
+            <p>
+                Continued use of the Platform after changes constitutes acceptance of 
+                the modified Terms.
+            </p>
+            <p>
+                <strong>For significant changes, we may (but are not obligated to) notify users.</strong>
+            </p>
+        </section>
+
+        <!-- Miscellaneous -->
+        <section class="legal-section">
+            <h2>11. Miscellaneous</h2>
+            
+            <h3>11.1 Severability</h3>
+            <p>
+                If any provision of these Terms is found to be unenforceable, the remaining 
+                provisions shall continue in full effect.
+            </p>
+
+            <h3>11.2 No Waiver</h3>
+            <p>
+                Our failure to enforce any right or provision does not constitute a waiver of that right.
+            </p>
+
+            <h3>11.3 Assignment</h3>
+            <p>
+                You may not assign these Terms without our written consent. We may assign 
+                these Terms at any time.
+            </p>
+
+            <h3>11.4 Entire Agreement</h3>
+            <p>
+                These Terms and our Privacy Policy constitute the entire agreement between 
+                you and us regarding the Platform.
+            </p>
+        </section>
+
+        <!-- Contact -->
+        <section class="legal-section">
+            <h2>12. Contact Information</h2>
+            <p>
+                For questions about these Terms:
+            </p>
+            <ul>
+                <li><strong>Educational Project:</strong> Contact your course instructor</li>
+                <li><strong>GitHub Issues:</strong> Report on the project repository</li>
+                <li><strong>Email:</strong> [SPECIFY CONTACT EMAIL]</li>
+            </ul>
+        </section>
+
+        <!-- Disclaimer -->
+        <div class="legal-disclaimer">
+            <h3>⚖️ Legal Disclaimer</h3>
+            <p>
+                These Terms of Use are a <strong>template for educational purposes</strong>. 
+                They are NOT a legally binding document and have NOT been reviewed by legal counsel.
+            </p>
+            <p style="color: #ef4444; font-weight: 600;">
+                Before deploying this platform for production use:
+            </p>
+            <ul>
+                <li>Consult with a qualified attorney specializing in technology and finance law</li>
+                <li>Ensure compliance with financial regulations in your jurisdiction</li>
+                <li>Implement proper security measures</li>
+                <li>Obtain necessary licenses or registrations</li>
+                <li>Have terms reviewed by users' legal counsel</li>
+                <li>Consider obtaining professional liability insurance</li>
+            </ul>
+            <p>
+                <strong>The creators, contributors, and maintainers of this project assume 
+                NO LIABILITY for your use of this Platform or these Terms.</strong>
+            </p>
+        </div>
+
+        <!-- Acknowledgment -->
+        <div style="margin-top: 2rem; padding: 1.5rem; background: #f3f4f6; border-radius: 8px; text-align: center;">
+            <p style="font-weight: 600; margin-bottom: 0.5rem;">
+                By using the AI Trading Assistant Platform, you acknowledge that you have read, 
+                understood, and agree to be bound by these Terms of Use.
+            </p>
+            <p style="color: #6b7280; font-size: 0.9rem; margin: 0;">
+                Last Updated: November 13, 2025
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Legal Document Styling (same as privacy.html) */
+.legal-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.legal-notice {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-left: 4px solid #f59e0b;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+}
+
+.legal-notice h3 {
+    color: #92400e;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.legal-notice p {
+    color: #78350f;
+    margin: 0.5rem 0;
+}
+
+.legal-section {
+    margin-bottom: 2.5rem;
+}
+
+.legal-section h2 {
+    color: #1f2937;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #667eea;
+}
+
+.legal-section h3 {
+    color: #4b5563;
+    font-size: 1.15rem;
+    margin: 1.5rem 0 0.75rem 0;
+}
+
+.legal-section p {
+    color: #374151;
+    line-height: 1.8;
+    margin: 0.75rem 0;
+}
+
+.legal-section ul {
+    color: #374151;
+    line-height: 1.8;
+    margin: 0.75rem 0 0.75rem 1.5rem;
+}
+
+.legal-section li {
+    margin: 0.5rem 0;
+}
+
+.legal-section code {
+    background: #f3f4f6;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #4f46e5;
+}
+
+.legal-section strong {
+    color: #1f2937;
+}
+
+.legal-disclaimer {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border-left: 4px solid #ef4444;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border-radius: 8px;
+}
+
+.legal-disclaimer h3 {
+    color: #991b1b;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.legal-disclaimer p, .legal-disclaimer ul {
+    color: #7f1d1d;
+}
+
+@media (max-width: 768px) {
+    .legal-container {
+        padding: 1.5rem;
+    }
+    
+    .legal-section h2 {
+        font-size: 1.25rem;
+    }
+    
+    .legal-section h3 {
+        font-size: 1.05rem;
+    }
+}
+</style>
+{% endblock %}
+

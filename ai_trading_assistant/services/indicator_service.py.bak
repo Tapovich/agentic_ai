@@ -1,0 +1,595 @@
+"""
+Technical Indicators Service
+Calculates technical analysis indicators for cryptocurrency trading.
+
+Technical indicators are mathematical calculations based on price and volume
+that help traders make decisions. They show trends, momentum, and market conditions.
+
+Common Indicators:
+- EMA (Exponential Moving Average): Weighted average that reacts faster to price changes
+  Uses exponential decay, giving more weight to recent prices vs SMA which treats all equally
+- RSI (Relative Strength Index): Momentum indicator, shows overbought/oversold conditions
+
+Why EMA over SMA?
+- EMAs respond faster to recent price movements
+- Better for volatile markets like crypto
+- More commonly used by professional traders
+- Standard in most trading platforms
+"""
+
+import pandas as pd
+import numpy as np
+
+
+def sma(series: pd.Series, period: int) -> pd.Series:
+    """
+    Calculate Simple Moving Average (SMA/MA).
+    
+    SMA calculates the average of prices over a specific period.
+    Each price has equal weight.
+    
+    Formula: SMA = (P1 + P2 + ... + Pn) / n
+    
+    Args:
+        series: Price series (typically closing prices)
+        period: Number of periods for SMA calculation
+    
+    Returns:
+        Series of SMA values
+    
+    Example:
+        df['ma20'] = sma(df['close'], 20)
+    """
+    return series.rolling(window=period).mean()
+
+
+def get_ma_signals(df: pd.DataFrame) -> dict:
+    """
+    Generate EMA-based trading signals (TASK 42).
+    
+    Analyzes EMA crossovers and alignment to produce clear BUY/SELL/HOLD signals:
+    - Golden Cross: EMA50 crosses above EMA200 (bullish)
+    - Death Cross: EMA50 crosses below EMA200 (bearish)
+    - Short-term: EMA9 vs EMA20 for immediate signals
+    - Confidence: Based on alignment and recent crosses
+    
+    Args:
+        df (pd.DataFrame): DataFrame with EMA columns already calculated
+                          (ema9, ema20, ema50, ema200)
+    
+    Returns:
+        dict: Signal information
+        {
+            'trend_label': str,         # 'long_term_uptrend' or 'long_term_downtrend'
+            'golden_cross': bool,       # True if golden cross just occurred
+            'death_cross': bool,        # True if death cross just occurred
+            'short_term': str,          # 'bullish' or 'bearish'
+            'overall_signal': str,      # 'BUY', 'SELL', or 'HOLD'
+            'confidence': int,          # 0-100
+            'explanation': str          # Human-readable explanation
+        }
+    
+    Example:
+        signals = get_ema_signals(df)
+        if signals['overall_signal'] == 'BUY':
+            print(f"Buy signal with {signals['confidence']}% confidence")
+    
+    Note:
+        This is an educational trading signal system. Not financial advice.
+        Always do your own research and risk management.
+    """
+    # Check if we have enough data
+    if len(df) < 2:
+        return {
+            'trend_label': 'insufficient_data',
+            'golden_cross': False,
+            'death_cross': False,
+            'short_term': 'unknown',
+            'overall_signal': 'HOLD',
+            'confidence': 0,
+            'explanation': 'Not enough data for signal generation'
+        }
+    
+    # Get latest EMA values
+    ema9 = df['ema9'].iloc[-1]
+    ema20 = df['ema20'].iloc[-1]
+    ema50 = df['ema50'].iloc[-1]
+    ema200 = df['ema200'].iloc[-1]
+    
+    # Get previous bar EMAs for crossover detection
+    prev_ema50 = df['ema50'].iloc[-2]
+    prev_ema200 = df['ema200'].iloc[-2]
+    prev_ema9 = df['ema9'].iloc[-2]
+    prev_ema20 = df['ema20'].iloc[-2]
+    
+    # ========================================
+    # 1. Long-term Trend (EMA50 vs EMA200)
+    # ========================================
+    if ema50 > ema200:
+        trend_label = "long_term_uptrend"
+    else:
+        trend_label = "long_term_downtrend"
+    
+    # ========================================
+    # 2. Golden/Death Cross Detection
+    # ========================================
+    # Golden Cross: EMA50 crosses above EMA200 (major bullish signal)
+    golden_cross = (prev_ema50 <= prev_ema200) and (ema50 > ema200)
+    
+    # Death Cross: EMA50 crosses below EMA200 (major bearish signal)
+    death_cross = (prev_ema50 >= prev_ema200) and (ema50 < ema200)
+    
+    # ========================================
+    # 3. Short-term Signal (EMA9 vs EMA20)
+    # ========================================
+    if ema9 > ema20:
+        short_term = "bullish"
+        short_cross = (prev_ema9 <= prev_ema20)  # Just crossed bullish
+    else:
+        short_term = "bearish"
+        short_cross = (prev_ema9 >= prev_ema20)  # Just crossed bearish
+    
+    # ========================================
+    # 4. Overall Signal
+    # ========================================
+    # Strong BUY: Long-term uptrend AND short-term bullish
+    if trend_label == "long_term_uptrend" and short_term == "bullish":
+        overall_signal = "BUY"
+    # Strong SELL: Long-term downtrend AND short-term bearish
+    elif trend_label == "long_term_downtrend" and short_term == "bearish":
+        overall_signal = "SELL"
+    # Otherwise: HOLD (conflicting signals)
+    else:
+        overall_signal = "HOLD"
+    
+    # ========================================
+    # 5. Confidence Calculation (0-100)
+    # ========================================
+    confidence = 50  # Start at neutral
+    
+    # Major crossovers are strong signals
+    if golden_cross:
+        confidence += 25  # Very bullish
+    if death_cross:
+        confidence -= 25  # Very bearish
+    
+    # Recent short-term cross adds conviction
+    if short_cross:
+        if short_term == "bullish":
+            confidence += 10
+        else:
+            confidence -= 10
+    
+    # Clean EMA alignment = strong trend
+    # Perfect bull alignment: ema9 > ema20 > ema50 > ema200
+    if ema9 > ema20 > ema50 > ema200:
+        confidence += 15  # Perfect bull alignment
+    # Perfect bear alignment: ema9 < ema20 < ema50 < ema200
+    elif ema9 < ema20 < ema50 < ema200:
+        confidence -= 15  # Perfect bear alignment
+    
+    # Clamp confidence to [0, 100]
+    confidence = max(0, min(100, confidence))
+    
+    # ========================================
+    # 6. Build Explanation
+    # ========================================
+    explanation_parts = []
+    
+    if golden_cross:
+        explanation_parts.append("🌟 Golden Cross detected! EMA50 crossed above EMA200 (major bullish)")
+    elif death_cross:
+        explanation_parts.append("💀 Death Cross detected! EMA50 crossed below EMA200 (major bearish)")
+    else:
+        if trend_label == "long_term_uptrend":
+            explanation_parts.append("📈 Long-term uptrend (EMA50 > EMA200)")
+        else:
+            explanation_parts.append("📉 Long-term downtrend (EMA50 < EMA200)")
+    
+    if short_term == "bullish":
+        if short_cross:
+            explanation_parts.append("🔥 Short-term bullish cross (EMA9 > EMA20)")
+        else:
+            explanation_parts.append("✓ Short-term bullish (EMA9 > EMA20)")
+    else:
+        if short_cross:
+            explanation_parts.append("❄️ Short-term bearish cross (EMA9 < EMA20)")
+        else:
+            explanation_parts.append("✗ Short-term bearish (EMA9 < EMA20)")
+    
+    if ema9 > ema20 > ema50 > ema200:
+        explanation_parts.append("💪 Perfect bull alignment")
+    elif ema9 < ema20 < ema50 < ema200:
+        explanation_parts.append("⚠️ Perfect bear alignment")
+    
+    explanation = " | ".join(explanation_parts)
+    
+    return {
+        'trend_label': trend_label,
+        'golden_cross': golden_cross,
+        'death_cross': death_cross,
+        'short_term': short_term,
+        'overall_signal': overall_signal,
+        'confidence': int(confidence),
+        'explanation': explanation
+    }
+
+
+def calculate_indicators(price_rows):
+    """
+    Calculate technical indicators from price data.
+    
+    This function computes common trading indicators used by traders worldwide:
+    - EMA 9: 9-period exponential moving average (very short-term, scalping)
+    - EMA 20: 20-period exponential moving average (short-term trend)
+    - EMA 50: 50-period exponential moving average (medium-term trend)
+    - EMA 100: 100-period exponential moving average (long-term trend)
+    - EMA 200: 200-period exponential moving average (major trend, support/resistance)
+    - RSI 14: 14-period relative strength index (momentum)
+    
+    Args:
+        price_rows (list): List of dictionaries with price data
+                          Each row should have: close_price, timestamp
+                          Need at least 200 rows for accurate EMA 200 calculations
+    
+    Returns:
+        dict: Dictionary with indicator values
+              {
+                  "ema9": 45800.50,
+                  "ema20": 45600.50,
+                  "ema50": 44200.30,
+                  "ema100": 43500.20,
+                  "ema200": 42800.10,
+                  "rsi14": 55.3,
+                  "current_price": 45800.00,
+                  "ema_chart": {
+                      "timestamps": ["2025-01-01 00:00:00", ...],
+                      "close": [45800, ...],
+                      "ema9": [45800.5, ...],
+                      "ema20": [45600.5, ...],
+                      ...
+                  }
+              }
+              Returns None if not enough data
+    
+    Example:
+        price_data = db.fetch_all("SELECT * FROM price_history WHERE symbol = 'BTCUSDT' LIMIT 250")
+        indicators = calculate_indicators(price_data)
+        print(f"EMA 20: ${indicators['ema20']}")
+    """
+    
+    # Check if we have data (need more for EMA 200)
+    if not price_rows or len(price_rows) < 200:
+        print(f"⚠️  Not enough price data for indicators (need 200, have {len(price_rows) if price_rows else 0})")
+        return None
+    
+    # Convert to pandas DataFrame for easy calculations
+    # Specify column names explicitly (tuples don't have headers)
+    df = pd.DataFrame(price_rows, columns=['timestamp', 'close_price', 'open_price', 'high_price', 'low_price', 'volume'])
+    
+    # Sort by timestamp to ensure correct order
+    df = df.sort_values('timestamp').reset_index(drop=True)
+    
+    # ========================================
+    # EXPONENTIAL MOVING AVERAGES (EMA)
+    # ========================================
+    # EMA gives more weight to recent prices, making it more responsive than SMA
+    # Formula: EMA = Price(t) * k + EMA(y) * (1-k), where k = 2/(period+1)
+    # 
+    # EMAs are preferred in crypto trading because:
+    # - React faster to price changes (important in volatile markets)
+    # - Reduce lag compared to SMA
+    # - Standard in professional trading platforms
+    
+    # EMA 9 (Very short-term, used by scalpers and day traders)
+    # Usage: Price crosses above EMA9 = immediate bullish signal
+    df['ema9'] = ema(df['close_price'], 9)
+    
+    # EMA 20 (Short-term trend)
+    # Usage: If price > EMA20, short-term uptrend; if price < EMA20, downtrend
+    df['ema20'] = ema(df['close_price'], 20)
+    
+    # EMA 50 (Medium-term trend)
+    # Usage: When EMA20 crosses above EMA50, bullish signal
+    #        When EMA20 crosses below EMA50, bearish signal
+    df['ema50'] = ema(df['close_price'], 50)
+    
+    # EMA 100 (Long-term trend)
+    # Usage: Price holding above EMA100 = strong uptrend
+    df['ema100'] = ema(df['close_price'], 100)
+    
+    # EMA 200 (Major trend and psychological level)
+    # Usage: Most important MA - acts as strong support/resistance
+    #        Price above EMA200 = bull market
+    #        Price below EMA200 = bear market
+    df['ema200'] = ema(df['close_price'], 200)
+    
+    # ========================================
+    # RELATIVE STRENGTH INDEX (RSI)
+    # ========================================
+    # RSI measures momentum and overbought/oversold conditions
+    # Range: 0 to 100
+    # Interpretation:
+    #   - RSI > 70: Overbought (price may drop soon)
+    #   - RSI < 30: Oversold (price may rise soon)
+    #   - RSI around 50: Neutral
+    
+    # Step 1: Calculate price changes
+    df['price_change'] = df['close_price'].diff()
+    
+    # Step 2: Separate gains and losses
+    # Gains: positive price changes
+    # Losses: negative price changes (converted to positive)
+    df['gain'] = df['price_change'].apply(lambda x: x if x > 0 else 0)
+    df['loss'] = df['price_change'].apply(lambda x: abs(x) if x < 0 else 0)
+    
+    # Step 3: Calculate average gains and losses over 14 periods
+    # Using exponential moving average for smoother results
+    df['avg_gain'] = df['gain'].rolling(window=14).mean()
+    df['avg_loss'] = df['loss'].rolling(window=14).mean()
+    
+    # Step 4: Calculate Relative Strength (RS)
+    # RS = Average Gain / Average Loss
+    df['rs'] = df['avg_gain'] / df['avg_loss']
+    
+    # Step 5: Calculate RSI
+    # Formula: RSI = 100 - (100 / (1 + RS))
+    # This converts RS into a 0-100 scale
+    df['rsi14'] = 100 - (100 / (1 + df['rs']))
+    
+    # Handle division by zero (when avg_loss is 0)
+    df['rsi14'] = df['rsi14'].fillna(50)  # Default to neutral
+    
+    # ========================================
+    # EXTRACT LATEST VALUES
+    # ========================================
+    # Get the most recent row (last calculated values)
+    
+    latest = df.iloc[-1]
+    
+    # Current price
+    current_price = latest['close_price']
+    
+    # Get indicator values (check for NaN)
+    ema9 = latest['ema9'] if not pd.isna(latest['ema9']) else None
+    ema20 = latest['ema20'] if not pd.isna(latest['ema20']) else None
+    ema50 = latest['ema50'] if not pd.isna(latest['ema50']) else None
+    ema100 = latest['ema100'] if not pd.isna(latest['ema100']) else None
+    ema200 = latest['ema200'] if not pd.isna(latest['ema200']) else None
+    rsi14 = latest['rsi14'] if not pd.isna(latest['rsi14']) else None
+    
+    # ========================================
+    # BUILD EMA CHART DATA (TASK 41)
+    # ========================================
+    # Prepare complete time series for Chart.js visualization
+    # Only include rows where EMAs are calculated (after warmup period)
+    
+    ema_chart = {
+        'timestamps': df['timestamp'].astype(str).tolist(),
+        'close': df['close_price'].tolist(),
+        'ema9': df['ema9'].fillna(0).tolist(),
+        'ema20': df['ema20'].fillna(0).tolist(),
+        'ema50': df['ema50'].fillna(0).tolist(),
+        'ema100': df['ema100'].fillna(0).tolist(),
+        'ema200': df['ema200'].fillna(0).tolist()
+    }
+    
+    # ========================================
+    # BUILD RESPONSE
+    # ========================================
+    
+    result = {
+        'current_price': float(current_price) if current_price else None,
+        'ema9': float(ema9) if ema9 is not None else None,
+        'ema20': float(ema20) if ema20 is not None else None,
+        'ema50': float(ema50) if ema50 is not None else None,
+        'ema100': float(ema100) if ema100 is not None else None,
+        'ema200': float(ema200) if ema200 is not None else None,
+        'rsi14': float(rsi14) if rsi14 is not None else None,
+        'data_points': len(df),
+        'timestamp': str(latest['timestamp']) if 'timestamp' in latest else None,
+        'ema_chart': ema_chart  # TASK 41: Chart data for visualization
+    }
+    
+    # Add interpretation hints
+    if rsi14 is not None:
+        if rsi14 > 70:
+            result['rsi_signal'] = 'Overbought'
+            result['rsi_color'] = 'red'
+        elif rsi14 < 30:
+            result['rsi_signal'] = 'Oversold'
+            result['rsi_color'] = 'green'
+        else:
+            result['rsi_signal'] = 'Neutral'
+            result['rsi_color'] = 'gray'
+    
+    # Add EMA trend (TASK 40: EMA-based trend detection)
+    # Uses EMA alignment: 9 > 20 > 50 = strong uptrend
+    if ema9 is not None and ema20 is not None and ema50 is not None:
+        if ema9 > ema20 > ema50:
+            result['ema_trend'] = 'Strong Uptrend'
+            result['ema_color'] = 'darkgreen'
+        elif ema9 > ema20:
+            result['ema_trend'] = 'Bullish'
+            result['ema_color'] = 'green'
+        elif ema9 < ema20 < ema50:
+            result['ema_trend'] = 'Strong Downtrend'
+            result['ema_color'] = 'darkred'
+        elif ema9 < ema20:
+            result['ema_trend'] = 'Bearish'
+            result['ema_color'] = 'red'
+        else:
+            result['ema_trend'] = 'Sideways'
+            result['ema_color'] = 'gray'
+    
+    # Long-term trend based on EMA 50 vs EMA 200
+    if ema50 is not None and ema200 is not None:
+        if ema50 > ema200:
+            result['longterm_trend'] = 'Bull Market'
+        else:
+            result['longterm_trend'] = 'Bear Market'
+    
+    # ========================================
+    # TASK 42: Add EMA-based trading signals
+    # ========================================
+    # Generate Golden/Death cross signals and overall BUY/SELL/HOLD
+    try:
+        ema_signals = get_ema_signals(df)
+        result['ema_signals'] = ema_signals
+        print(f"✅ EMA Signals: {ema_signals['overall_signal']} ({ema_signals['confidence']}% confidence)")
+    except Exception as e:
+        print(f"⚠️  Could not generate EMA signals: {e}")
+        result['ema_signals'] = {
+            'trend_label': 'unknown',
+            'golden_cross': False,
+            'death_cross': False,
+            'short_term': 'unknown',
+            'overall_signal': 'HOLD',
+            'confidence': 0,
+            'explanation': 'Signal generation failed'
+        }
+    
+    return result
+
+
+def calculate_simple_indicators(symbol, limit=250):
+    """
+    Calculate indicators for a specific symbol using UNIFIED DATA SOURCE (TASK 47).
+    
+    This is a convenience function that:
+    1. Fetches price data from UNIFIED data service (ensures consistency)
+    2. Calculates indicators (including EMA 9, 20, 50, 100, 200)
+    3. Returns results with chart data
+    
+    Args:
+        symbol (str): Cryptocurrency symbol (e.g., "BTCUSDT")
+        limit (int): Number of price records to use (default 250 for EMA 200)
+    
+    Returns:
+        dict: Indicator values with EMA chart data
+        None: If insufficient data or error
+    
+    Data Flow (TASK 47):
+        CCXT → price_history → unified_data_service → indicators
+    
+    Error Handling:
+        - Returns None if < 200 candles (insufficient for EMA 200)
+        - Returns None if data fetch fails
+        - Caller should check for None and return error JSON
+    """
+    
+    try:
+        # Import unified data service (TASK 47 - single source of truth)
+        from services.unified_data_service import get_price_history_df, validate_df_for_indicators
+        
+        # Get price data from unified source
+        df = get_price_history_df(symbol, timeframe="1h", limit=limit)
+        
+        # Validate sufficient data for indicators
+        is_valid, error_msg = validate_df_for_indicators(df, min_candles=200)
+        if not is_valid:
+            print(f"❌ Indicator validation failed: {error_msg}")
+            return None
+        
+        # Convert DataFrame to rows format for calculate_indicators
+        # Reset index to make timestamp a column (not index)
+        df_with_timestamp = df.reset_index()
+        
+        # Format: [(timestamp, close, open, high, low, volume), ...]
+        price_rows = []
+        for _, row in df_with_timestamp.iterrows():
+            price_rows.append((
+                row['timestamp'],
+                row['close'],
+                row['open'],
+                row['high'],
+                row['low'],
+                row['volume']
+            ))
+        
+        # Calculate indicators using existing function
+        return calculate_indicators(price_rows)
+        
+    except Exception as e:
+        print(f"❌ Error calculating indicators for {symbol}: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+# ============================================
+# INDICATOR EXPLANATIONS (for students)
+# ============================================
+
+"""
+TECHNICAL INDICATORS EXPLAINED:
+
+1. SMA (Simple Moving Average)
+-------------------------------
+What: Average of the last N closing prices
+Purpose: Shows the trend direction and smooths out price noise
+
+SMA 20 (Short-term):
+- Uses last 20 periods
+- Faster to react to price changes
+- Good for short-term trading
+
+SMA 50 (Long-term):
+- Uses last 50 periods
+- Slower to react, more stable
+- Good for long-term trends
+
+Trading Signals:
+- Price > SMA: Uptrend (bullish)
+- Price < SMA: Downtrend (bearish)
+- SMA20 crosses above SMA50: Buy signal (Golden Cross)
+- SMA20 crosses below SMA50: Sell signal (Death Cross)
+
+Example:
+If SMA20 = $45,000 and current price = $46,000
+→ Price is above moving average → Uptrend
+
+
+2. RSI (Relative Strength Index)
+---------------------------------
+What: Measures momentum and overbought/oversold conditions
+Range: 0 to 100
+
+How it works:
+- Compares average gains vs average losses over 14 periods
+- High RSI = Strong upward momentum
+- Low RSI = Strong downward momentum
+
+Interpretation:
+- RSI > 70: OVERBOUGHT (price may drop soon, consider selling)
+- RSI < 30: OVERSOLD (price may rise soon, consider buying)
+- RSI 40-60: Neutral (no strong signal)
+
+Example:
+RSI = 75 → Overbought → Price might fall soon → Consider selling
+RSI = 25 → Oversold → Price might rise soon → Consider buying
+
+Formula:
+RS = Average Gain / Average Loss
+RSI = 100 - (100 / (1 + RS))
+
+
+3. Using Indicators Together
+-----------------------------
+Best practice: Use multiple indicators together
+
+Example Strategy:
+✅ Buy when:
+   - RSI < 30 (oversold)
+   - Price crosses above SMA20
+   - SMA20 > SMA50 (uptrend confirmed)
+
+✅ Sell when:
+   - RSI > 70 (overbought)
+   - Price crosses below SMA20
+   - SMA20 < SMA50 (downtrend confirmed)
+
+⚠️ Note: No indicator is 100% accurate!
+Always use multiple indicators and proper risk management.
+"""
+
